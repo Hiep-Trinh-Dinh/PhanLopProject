@@ -4,14 +4,40 @@ import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Heart, MessageCircle, MoreHorizontal, Share2, ThumbsUp } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
-// Mock data for posts
-const mockPosts = [
+interface User {
+  id: number
+  name: string
+  avatar: string
+  username: string
+}
+
+interface Post {
+  id: number
+  hasLiked: boolean
+  user: User
+  content: string
+  image?: string
+  timestamp: string
+  likes: number
+  comments: number
+  shares: number
+}
+
+interface PostActionsProps {
+  post: Post
+  onLike: (id: number) => void
+  onComment: (id: number) => void
+}
+
+interface CommentSectionProps {
+  isActive: boolean
+  commentText: string
+  onCommentChange: (text: string) => void
+  onSubmit: () => void
+}
+
+const mockPosts: Post[] = [
   {
     id: 1,
     user: {
@@ -43,41 +69,84 @@ const mockPosts = [
     shares: 3,
     hasLiked: true,
   },
-  {
-    id: 3,
-    user: {
-      id: 3,
-      name: "Sarah Williams",
-      avatar: "/placeholder-user.jpg",
-      username: "sarahwilliams",
-    },
-    content:
-      "Just got my new gaming setup! Can't wait to try it out this weekend. Who's up for some multiplayer action?",
-    timestamp: "1 day ago",
-    likes: 42,
-    comments: 12,
-    shares: 5,
-    hasLiked: false,
-  },
 ]
 
+const PostActions = ({ post, onLike, onComment }: PostActionsProps) => (
+  <div className="flex border-t border-gray-800 pt-1">
+    <button
+      className={`flex flex-1 items-center justify-center rounded-md px-3 py-1.5 ${
+        post.hasLiked ? "text-blue-500" : "text-gray-400"
+      } hover:bg-gray-800`}
+      onClick={() => onLike(post.id)}
+    >
+      {post.hasLiked ? (
+        <Heart className="mr-1 h-5 w-5 fill-blue-500" />
+      ) : (
+        <ThumbsUp className="mr-1 h-5 w-5" />
+      )}
+      <span>Like</span>
+    </button>
+    <button
+      className="flex flex-1 items-center justify-center rounded-md px-3 py-1.5 text-gray-400 hover:bg-gray-800"
+      onClick={() => onComment(post.id)}
+    >
+      <MessageCircle className="mr-1 h-5 w-5" />
+      <span>Comment</span>
+    </button>
+    <button className="flex flex-1 items-center justify-center rounded-md px-3 py-1.5 text-gray-400 hover:bg-gray-800">
+      <Share2 className="mr-1 h-5 w-5" />
+      <span>Share</span>
+    </button>
+  </div>
+)
+
+const CommentSection = ({ isActive, commentText, onCommentChange, onSubmit }: CommentSectionProps) => {
+  if (!isActive) return null
+
+  return (
+    <div className="mt-3 flex items-start space-x-2">
+      <div className="relative h-8 w-8 overflow-hidden rounded-full">
+        <img src="/placeholder-user.jpg" alt="Your avatar" className="h-full w-full object-cover" />
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">U</div>
+      </div>
+      <div className="flex-1">
+        <textarea
+          placeholder="Write a comment..."
+          className="min-h-[60px] w-full resize-none rounded-md border border-gray-800 bg-gray-800 p-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={commentText}
+          onChange={(e) => onCommentChange(e.target.value)}
+        />
+        <div className="mt-2 flex justify-end">
+          <button
+            className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            onClick={onSubmit}
+            disabled={!commentText.trim()}
+          >
+            Comment
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function PostFeed() {
-  const [posts, setPosts] = useState(mockPosts)
+  const [posts, setPosts] = useState<Post[]>(mockPosts)
   const [commentText, setCommentText] = useState("")
   const [activeCommentId, setActiveCommentId] = useState<number | null>(null)
+  const [showDropdown, setShowDropdown] = useState<number | null>(null)
 
   const handleLike = (postId: number) => {
     setPosts(
-      posts.map((post) => {
-        if (post.id === postId) {
-          return {
-            ...post,
-            likes: post.hasLiked ? post.likes - 1 : post.likes + 1,
-            hasLiked: !post.hasLiked,
-          }
-        }
-        return post
-      }),
+      posts.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              likes: post.hasLiked ? post.likes - 1 : post.likes + 1,
+              hasLiked: !post.hasLiked,
+            }
+          : post,
+      ),
     )
   }
 
@@ -90,31 +159,31 @@ export default function PostFeed() {
     if (!commentText.trim()) return
 
     setPosts(
-      posts.map((post) => {
-        if (post.id === postId) {
-          return {
-            ...post,
-            comments: post.comments + 1,
-          }
-        }
-        return post
-      }),
+      posts.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              comments: post.comments + 1,
+            }
+          : post,
+      ),
     )
-
     setCommentText("")
-    // In a real app, you would send the comment to the server
+    setActiveCommentId(null)
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
       {posts.map((post) => (
-        <Card key={post.id} className="border-gray-800 bg-gray-900">
-          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+        <div key={post.id} className="rounded-lg border border-gray-800 bg-gray-900">
+          <div className="flex items-start justify-between space-y-0 p-4">
             <div className="flex items-center space-x-3">
-              <Avatar>
-                <AvatarImage src={post.user.avatar} alt={post.user.name} />
-                <AvatarFallback>{post.user.name.charAt(0)}</AvatarFallback>
-              </Avatar>
+              <div className="relative h-10 w-10 overflow-hidden rounded-full">
+                <img src={post.user.avatar} alt={post.user.name} className="h-full w-full object-cover" />
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">
+                  {post.user.name.charAt(0)}
+                </div>
+              </div>
               <div>
                 <Link href={`/profile/${post.user.username}`} className="font-semibold text-white hover:underline">
                   {post.user.name}
@@ -122,27 +191,46 @@ export default function PostFeed() {
                 <p className="text-xs text-gray-400">{post.timestamp}</p>
               </div>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span className="sr-only">More options</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="border-gray-800 bg-gray-900 text-white">
-                <DropdownMenuItem className="cursor-pointer">Save Post</DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">Report Post</DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">Hide Post</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </CardHeader>
-          <CardContent className="pb-3 pt-0">
+
+            <div className="relative">
+              <button
+                onClick={() => setShowDropdown(showDropdown === post.id ? null : post.id)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-gray-800"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+              {showDropdown === post.id && (
+                <div className="absolute right-0 z-50 mt-2 w-48 rounded-md border border-gray-800 bg-gray-900 py-1 shadow-lg">
+                  <button
+                    className="flex w-full items-center px-4 py-2 text-sm text-white hover:bg-gray-800"
+                    onClick={() => setShowDropdown(null)}
+                  >
+                    Save Post
+                  </button>
+                  <button
+                    className="flex w-full items-center px-4 py-2 text-sm text-white hover:bg-gray-800"
+                    onClick={() => setShowDropdown(null)}
+                  >
+                    Report Post
+                  </button>
+                  <button
+                    className="flex w-full items-center px-4 py-2 text-sm text-white hover:bg-gray-800"
+                    onClick={() => setShowDropdown(null)}
+                  >
+                    Hide Post
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="px-4 pb-3">
             <Link href={`/post/${post.id}`}>
               <p className="mb-3 text-white">{post.content}</p>
               {post.image && (
-                <div className="mt-3 overflow-hidden rounded-lg">
+                <div className="overflow-hidden rounded-lg">
                   <Image
-                    src={post.image || "/placeholder.svg"}
+                    src={post.image}
                     alt="Post image"
                     width={600}
                     height={400}
@@ -151,65 +239,30 @@ export default function PostFeed() {
                 </div>
               )}
             </Link>
-          </CardContent>
-          <CardFooter className="flex flex-col border-t border-gray-800 px-4 py-2">
+          </div>
+
+          <div className="flex flex-col border-t border-gray-800 px-4 py-2">
             <div className="flex items-center justify-between py-1 text-sm text-gray-400">
               <div>{post.likes} likes</div>
               <Link href={`/post/${post.id}`} className="hover:underline">
                 {post.comments} comments • {post.shares} shares
               </Link>
             </div>
-            <div className="flex border-t border-gray-800 pt-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`flex-1 ${post.hasLiked ? "text-blue-500" : "text-gray-400"}`}
-                onClick={() => handleLike(post.id)}
-              >
-                {post.hasLiked ? (
-                  <Heart className="mr-1 h-5 w-5 fill-blue-500" />
-                ) : (
-                  <ThumbsUp className="mr-1 h-5 w-5" />
-                )}
-                <span>Like</span>
-              </Button>
-              <Button variant="ghost" size="sm" className="flex-1 text-gray-400" onClick={() => handleComment(post.id)}>
-                <MessageCircle className="mr-1 h-5 w-5" />
-                <span>Comment</span>
-              </Button>
-              <Button variant="ghost" size="sm" className="flex-1 text-gray-400">
-                <Share2 className="mr-1 h-5 w-5" />
-                <span>Share</span>
-              </Button>
-            </div>
-            {activeCommentId === post.id && (
-              <div className="mt-3 flex items-start space-x-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder-user.jpg" alt="Your avatar" />
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <Textarea
-                    placeholder="Write a comment..."
-                    className="min-h-[60px] resize-none border-gray-800 bg-gray-800 text-white"
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                  />
-                  <div className="mt-2 flex justify-end">
-                    <Button
-                      size="sm"
-                      className="bg-blue-600 hover:bg-blue-700"
-                      onClick={() => submitComment(post.id)}
-                      disabled={!commentText.trim()}
-                    >
-                      Comment
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardFooter>
-        </Card>
+
+            <PostActions 
+              post={post} 
+              onLike={handleLike} 
+              onComment={handleComment} 
+            />
+
+            <CommentSection
+              isActive={activeCommentId === post.id}
+              commentText={commentText}
+              onCommentChange={setCommentText}
+              onSubmit={() => submitComment(post.id)}
+            />
+          </div>
+        </div>
       ))}
     </div>
   )

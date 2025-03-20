@@ -1,19 +1,8 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef, useEffect } from "react"
 import { Info, MoreHorizontal, Phone, Send, Video } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 interface ConversationProps {
   user: {
@@ -26,7 +15,6 @@ interface ConversationProps {
   }
 }
 
-// Mock data for messages
 const mockMessages = [
   {
     id: 1,
@@ -82,6 +70,7 @@ const mockMessages = [
 export default function Conversation({ user }: ConversationProps) {
   const [messages, setMessages] = useState(mockMessages)
   const [newMessage, setNewMessage] = useState("")
+  const [showDropdown, setShowDropdown] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -94,7 +83,6 @@ export default function Conversation({ user }: ConversationProps) {
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault()
-
     if (!newMessage.trim()) return
 
     const newMsg = {
@@ -113,42 +101,62 @@ export default function Conversation({ user }: ConversationProps) {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-gray-800 p-4">
         <div className="flex items-center space-x-3">
-          <Avatar>
-            <AvatarImage src={user.avatar} alt={user.name} />
-            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-          </Avatar>
+          <div className="relative h-10 w-10 overflow-hidden rounded-full">
+            <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">
+              {user.name.charAt(0)}
+            </div>
+          </div>
           <div>
             <h3 className="font-medium text-white">{user.name}</h3>
             <p className="text-xs text-gray-400">{user.lastActive}</p>
           </div>
         </div>
         <div className="flex items-center space-x-1">
-          <Button variant="ghost" size="icon" className="rounded-full">
+          <button className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-800">
             <Phone className="h-5 w-5" />
             <span className="sr-only">Call</span>
-          </Button>
-          <Button variant="ghost" size="icon" className="rounded-full">
+          </button>
+          <button className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-800">
             <Video className="h-5 w-5" />
             <span className="sr-only">Video call</span>
-          </Button>
-          <Button variant="ghost" size="icon" className="rounded-full">
+          </button>
+          <button className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-800">
             <Info className="h-5 w-5" />
             <span className="sr-only">Info</span>
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <MoreHorizontal className="h-5 w-5" />
-                <span className="sr-only">More options</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="border-gray-800 bg-gray-900 text-white">
-              <DropdownMenuItem className="cursor-pointer">Mute conversation</DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">Search in conversation</DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-gray-800" />
-              <DropdownMenuItem className="cursor-pointer text-red-400">Block user</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowDropdown(!showDropdown)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-800"
+            >
+              <MoreHorizontal className="h-5 w-5" />
+              <span className="sr-only">More options</span>
+            </button>
+            {showDropdown && (
+              <div className="absolute right-0 z-50 mt-2 w-56 rounded-md border border-gray-800 bg-gray-900 py-1 shadow-lg">
+                <button
+                  className="flex w-full items-center px-4 py-2 text-sm text-white hover:bg-gray-800"
+                  onClick={() => setShowDropdown(false)}
+                >
+                  Mute conversation
+                </button>
+                <button
+                  className="flex w-full items-center px-4 py-2 text-sm text-white hover:bg-gray-800"
+                  onClick={() => setShowDropdown(false)}
+                >
+                  Search in conversation
+                </button>
+                <div className="h-px bg-gray-800" />
+                <button
+                  className="flex w-full items-center px-4 py-2 text-sm text-red-400 hover:bg-gray-800"
+                  onClick={() => setShowDropdown(false)}
+                >
+                  Block user
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -176,16 +184,20 @@ export default function Conversation({ user }: ConversationProps) {
 
       <div className="border-t border-gray-800 p-4">
         <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
-          <Input
+          <input
+            type="text"
             placeholder="Type a message..."
-            className="flex-1 border-gray-700 bg-gray-800 text-white"
+            className="flex-1 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white placeholder-gray-400 focus:border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-600"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
           />
-          <Button type="submit" size="icon" className="bg-blue-600 hover:bg-blue-700">
+          <button
+            type="submit"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-blue-600 hover:bg-blue-700"
+          >
             <Send className="h-4 w-4" />
             <span className="sr-only">Send</span>
-          </Button>
+          </button>
         </form>
       </div>
     </div>

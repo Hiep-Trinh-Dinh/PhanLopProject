@@ -1,120 +1,133 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
-import { Bell, BellOff, MoreHorizontal, Users } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import Link from "next/link"
+import { Bell, BellOff, MoreHorizontal, Share, UserPlus } from "lucide-react"
 
 interface GroupHeaderProps {
-  group: {
-    id: number
-    name: string
-    cover: string
-    avatar: string
-    members: number
-    isJoined: boolean
-    isAdmin: boolean
-    privacy: string
-    description: string
-    created: string
-  }
+  groupId: number
 }
 
-export default function GroupHeader({ group }: GroupHeaderProps) {
-  const [isJoined, setIsJoined] = useState(group.isJoined)
-  const [isNotified, setIsNotified] = useState(true)
+export default function GroupHeader({ groupId }: GroupHeaderProps) {
+  const [isJoined, setIsJoined] = useState(false)
+  const [isNotified, setIsNotified] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
 
-  const toggleJoin = () => {
-    setIsJoined(!isJoined)
-    // In a real app, you would handle joining/leaving the group here
+  const groupData = {
+    name: "React Developers Community",
+    coverImage: "/placeholder-cover.jpg",
+    avatar: "/placeholder-group.jpg",
+    privacy: "Public",
+    members: 1250,
   }
 
-  const toggleNotifications = () => {
-    setIsNotified(!isNotified)
-    // In a real app, you would handle notification settings here
-  }
+  const toggleJoin = () => setIsJoined(!isJoined)
+  const toggleNotification = () => setIsNotified(!isNotified)
 
   return (
-    <div className="mb-6 overflow-hidden rounded-lg border border-gray-800 bg-gray-900">
-      <div className="relative h-48 w-full sm:h-64 md:h-80">
-        <Image src={group.cover || "/placeholder.svg"} alt={group.name} fill className="object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+    <div className="relative mb-6 overflow-hidden rounded-lg border border-gray-800 bg-gray-900">
+      <div className="relative h-48 w-full sm:h-64">
+        <img
+          src={groupData.coverImage}
+          alt={groupData.name}
+          className="h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
       </div>
 
-      <div className="relative -mt-16 px-4 pb-4 sm:px-6">
-        <div className="flex flex-col items-center sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex flex-col items-center sm:flex-row sm:items-end">
-            <div className="relative h-32 w-32 overflow-hidden rounded-full border-4 border-gray-900 bg-gray-800">
-              <Image src={group.avatar || "/placeholder.svg"} alt={group.name} fill className="object-cover" />
+      <div className="relative -mt-16 px-4 pb-4">
+        <div className="flex flex-col items-start justify-between space-y-3 sm:flex-row sm:items-end sm:space-y-0">
+          <div className="flex items-end space-x-4">
+            <div className="relative h-24 w-24 overflow-hidden rounded-lg border-4 border-gray-900">
+              <img
+                src={groupData.avatar}
+                alt={groupData.name}
+                className="h-full w-full object-cover"
+              />
             </div>
-            <div className="mt-4 text-center sm:ml-4 sm:text-left">
-              <h1 className="text-2xl font-bold text-white">{group.name}</h1>
-              <div className="mt-1 flex flex-wrap items-center justify-center gap-x-2 text-sm text-gray-400 sm:justify-start">
-                <div className="flex items-center">
-                  <Users className="mr-1 h-4 w-4" />
-                  <span>{group.members.toLocaleString()} members</span>
-                </div>
+            <div className="mb-1">
+              <h1 className="text-2xl font-bold text-white">{groupData.name}</h1>
+              <div className="flex items-center space-x-2 text-sm text-gray-400">
+                <span>{groupData.privacy} Group</span>
                 <span>•</span>
-                <span>{group.privacy} Group</span>
-                <span>•</span>
-                <span>Created {group.created}</span>
+                <span>{groupData.members.toLocaleString()} members</span>
               </div>
             </div>
           </div>
 
-          <div className="mt-4 flex space-x-2 sm:mt-0">
-            <Button
-              variant={isJoined ? "outline" : "default"}
-              className={
-                isJoined ? "border-gray-700 hover:bg-gray-800 hover:text-white" : "bg-blue-600 hover:bg-blue-700"
-              }
+          <div className="flex w-full space-x-2 sm:w-auto">
+            <button
               onClick={toggleJoin}
+              className={`inline-flex flex-1 items-center justify-center rounded-md px-4 py-2 text-sm font-medium sm:flex-none ${
+                isJoined
+                  ? "border border-gray-700 hover:bg-gray-800"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+              }`}
             >
-              {isJoined ? "Joined" : "Join Group"}
-            </Button>
+              {isJoined ? (
+                <>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Joined
+                </>
+              ) : (
+                <>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Join Group
+                </>
+              )}
+            </button>
 
-            {isJoined && (
-              <>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="border-gray-700 hover:bg-gray-800 hover:text-white"
-                  onClick={toggleNotifications}
-                >
-                  {isNotified ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
-                </Button>
+            <button
+              onClick={toggleNotification}
+              className="inline-flex items-center justify-center rounded-md border border-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-800"
+            >
+              {isNotified ? (
+                <BellOff className="h-4 w-4" />
+              ) : (
+                <Bell className="h-4 w-4" />
+              )}
+            </button>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="border-gray-700 hover:bg-gray-800 hover:text-white"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="border-gray-800 bg-gray-900 text-white">
-                    <DropdownMenuItem className="cursor-pointer">Invite Friends</DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer">Share Group</DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-gray-800" />
-                    <DropdownMenuItem className="cursor-pointer text-red-400">Report Group</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </>
-            )}
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="inline-flex items-center justify-center rounded-md border border-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-800"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+
+              {showMenu && (
+                <div className="absolute right-0 z-10 mt-2 w-48 rounded-md border border-gray-800 bg-gray-900 py-1 shadow-lg">
+                  <button
+                    className="flex w-full items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+                    onClick={() => {
+                      console.log("Share group")
+                      setShowMenu(false)
+                    }}
+                  >
+                    <Share className="mr-2 h-4 w-4" />
+                    Share Group
+                  </button>
+                  <Link
+                    href={`/groups/${groupId}/settings`}
+                    className="flex w-full items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+                    onClick={() => setShowMenu(false)}
+                  >
+                    Group Settings
+                  </Link>
+                  <button
+                    className="flex w-full items-center px-4 py-2 text-sm text-red-400 hover:bg-gray-800"
+                    onClick={() => {
+                      console.log("Leave group")
+                      setShowMenu(false)
+                    }}
+                  >
+                    Leave Group
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-
-        <div className="mt-6">
-          <p className="text-gray-300">{group.description}</p>
         </div>
       </div>
     </div>

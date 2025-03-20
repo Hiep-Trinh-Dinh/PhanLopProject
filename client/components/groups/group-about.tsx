@@ -1,7 +1,6 @@
 "use client"
 
 import { Calendar, Globe, Info, Shield, Users } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface GroupAboutProps {
   groupId: number
@@ -31,14 +30,14 @@ export default function GroupAbout({ groupId }: GroupAboutProps) {
 
   return (
     <div className="space-y-6">
-      <Card className="border-gray-800 bg-gray-900">
-        <CardHeader className="border-b border-gray-800 pb-3">
-          <CardTitle className="flex items-center">
+      <div className="rounded-lg border border-gray-800 bg-gray-900">
+        <div className="border-b border-gray-800 p-4">
+          <h2 className="flex items-center text-lg font-semibold">
             <Info className="mr-2 h-5 w-5" />
             About This Group
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
+          </h2>
+        </div>
+        <div className="p-4">
           <p className="text-gray-300">{groupInfo.description}</p>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -63,33 +62,33 @@ export default function GroupAbout({ groupId }: GroupAboutProps) {
               <span className="font-medium text-white">{groupInfo.posts.toLocaleString()}</span>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="border-gray-800 bg-gray-900">
-        <CardHeader className="border-b border-gray-800 pb-3">
-          <CardTitle className="flex items-center">
+      <div className="rounded-lg border border-gray-800 bg-gray-900">
+        <div className="border-b border-gray-800 p-4">
+          <h2 className="flex items-center text-lg font-semibold">
             <Shield className="mr-2 h-5 w-5" />
             Group Rules
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
+          </h2>
+        </div>
+        <div className="p-4">
           <ol className="list-inside list-decimal space-y-2 text-gray-300">
             {groupInfo.rules.map((rule, index) => (
               <li key={index}>{rule}</li>
             ))}
           </ol>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="border-gray-800 bg-gray-900">
-        <CardHeader className="border-b border-gray-800 pb-3">
-          <CardTitle className="flex items-center">
+      <div className="rounded-lg border border-gray-800 bg-gray-900">
+        <div className="border-b border-gray-800 p-4">
+          <h2 className="flex items-center text-lg font-semibold">
             <Users className="mr-2 h-5 w-5" />
             Admins and Moderators
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
+          </h2>
+        </div>
+        <div className="p-4">
           <div className="space-y-3">
             {groupInfo.admins.map((admin) => (
               <div key={admin.id} className="flex items-center justify-between">
@@ -100,8 +99,8 @@ export default function GroupAbout({ groupId }: GroupAboutProps) {
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

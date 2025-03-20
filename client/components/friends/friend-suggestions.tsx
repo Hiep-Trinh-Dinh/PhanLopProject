@@ -3,11 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { UserPlus } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-// Mock data for friend suggestions
 const mockFriendSuggestions = [
   {
     id: 1,
@@ -37,15 +33,14 @@ export default function FriendSuggestions() {
 
   const addFriend = (suggestionId: number) => {
     setFriendSuggestions(friendSuggestions.filter((suggestion) => suggestion.id !== suggestionId))
-    // In a real app, you would handle sending a friend request here
   }
 
   return (
-    <Card className="border-gray-800 bg-gray-900">
-      <CardHeader className="border-b border-gray-800 pb-3">
-        <CardTitle>People You May Know</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4">
+    <div className="rounded-lg border border-gray-800 bg-gray-900">
+      <div className="border-b border-gray-800 p-4">
+        <h2 className="text-lg font-semibold">People You May Know</h2>
+      </div>
+      <div className="p-4">
         <div className="space-y-4">
           {friendSuggestions.map((suggestion) => (
             <div
@@ -53,10 +48,16 @@ export default function FriendSuggestions() {
               className="flex items-center justify-between rounded-lg border border-gray-800 bg-gray-800 p-3"
             >
               <div className="flex items-center space-x-3">
-                <Avatar>
-                  <AvatarImage src={suggestion.avatar} alt={suggestion.name} />
-                  <AvatarFallback>{suggestion.name.charAt(0)}</AvatarFallback>
-                </Avatar>
+                <div className="relative h-10 w-10 overflow-hidden rounded-full">
+                  <img 
+                    src={suggestion.avatar} 
+                    alt={suggestion.name}
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">
+                    {suggestion.name.charAt(0)}
+                  </div>
+                </div>
                 <div>
                   <Link href={`/profile/${suggestion.username}`} className="font-semibold text-white hover:underline">
                     {suggestion.name}
@@ -64,20 +65,18 @@ export default function FriendSuggestions() {
                   <p className="text-xs text-gray-400">{suggestion.mutualFriends} mutual friends</p>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-gray-700 hover:bg-gray-700 hover:text-white"
+              <button
+                className="inline-flex h-8 items-center justify-center rounded-md border border-gray-700 px-3 text-sm font-medium hover:bg-gray-700 hover:text-white"
                 onClick={() => addFriend(suggestion.id)}
               >
                 <UserPlus className="mr-1 h-4 w-4" />
                 <span>Add</span>
-              </Button>
+              </button>
             </div>
           ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 

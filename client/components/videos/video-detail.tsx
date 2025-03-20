@@ -4,17 +4,6 @@ import { useState, useRef } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Heart, MessageCircle, Share2, Volume2, VolumeX, Pause, Play, MoreHorizontal } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import VideoComments from "./video-comments"
 
 interface VideoDetailProps {
@@ -45,6 +34,7 @@ export default function VideoDetail({ video }: VideoDetailProps) {
   const [isLiked, setIsLiked] = useState(false)
   const [likesCount, setLikesCount] = useState(video.likes)
   const [isFollowing, setIsFollowing] = useState(false)
+  const [showDropdown, setShowDropdown] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
 
   const togglePlay = () => {
@@ -86,43 +76,26 @@ export default function VideoDetail({ video }: VideoDetailProps) {
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden border-gray-800 bg-gray-900">
+      <div className="overflow-hidden rounded-lg border border-gray-800 bg-gray-900">
         <div className="relative aspect-video w-full">
-          {/* For demo purposes, using an image instead of video */}
           <Image src={video.thumbnail || "/placeholder.svg"} alt={video.title} fill className="object-cover" />
 
-          {/* This would be a real video in a production app */}
-          {/* <video
-            ref={videoRef}
-            src={video.url}
-            poster={video.thumbnail}
-            className="h-full w-full object-cover"
-            loop
-            muted={isMuted}
-            playsInline
-            onClick={togglePlay}
-          /> */}
-
           <div className="absolute inset-0 flex items-center justify-center">
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               className="h-16 w-16 rounded-full bg-black/50 text-white hover:bg-black/70"
               onClick={togglePlay}
             >
               {isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
-            </Button>
+            </button>
           </div>
 
           <div className="absolute bottom-4 right-4 flex space-x-2">
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               className="h-8 w-8 rounded-full bg-black/50 text-white hover:bg-black/70"
               onClick={toggleMute}
             >
               {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -137,37 +110,36 @@ export default function VideoDetail({ video }: VideoDetailProps) {
             </div>
 
             <div className="flex space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`flex items-center gap-1 ${isLiked ? "text-red-500" : "text-gray-400"}`}
+              <button
+                className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-sm ${
+                  isLiked ? "text-red-500" : "text-gray-400 hover:bg-gray-800"
+                }`}
                 onClick={toggleLike}
               >
                 <Heart className={`h-5 w-5 ${isLiked ? "fill-red-500" : ""}`} />
                 <span>{formatNumber(likesCount)}</span>
-              </Button>
+              </button>
 
-              <Button variant="ghost" size="sm" className="flex items-center gap-1 text-gray-400">
+              <button className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm text-gray-400 hover:bg-gray-800">
                 <MessageCircle className="h-5 w-5" />
                 <span>{formatNumber(video.comments)}</span>
-              </Button>
+              </button>
 
-              <Button variant="ghost" size="sm" className="flex items-center gap-1 text-gray-400">
+              <button className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm text-gray-400 hover:bg-gray-800">
                 <Share2 className="h-5 w-5" />
                 <span>{formatNumber(video.shares)}</span>
-              </Button>
+              </button>
             </div>
           </div>
 
-          <Separator className="my-4 bg-gray-800" />
+          <div className="my-4 h-px bg-gray-800" />
 
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3">
               <Link href={`/profile/${video.user.username}`}>
-                <Avatar>
-                  <AvatarImage src={video.user.avatar} alt={video.user.name} />
-                  <AvatarFallback>{video.user.name.charAt(0)}</AvatarFallback>
-                </Avatar>
+                <div className="relative h-10 w-10 overflow-hidden rounded-full">
+                  <img src={video.user.avatar} alt={video.user.name} className="h-full w-full object-cover" />
+                </div>
               </Link>
               <div>
                 <Link href={`/profile/${video.user.username}`} className="font-semibold text-white hover:underline">
@@ -178,43 +150,51 @@ export default function VideoDetail({ video }: VideoDetailProps) {
             </div>
 
             <div className="flex space-x-2">
-              <Button
-                variant={isFollowing ? "outline" : "default"}
-                size="sm"
-                className={
-                  isFollowing ? "border-gray-700 hover:bg-gray-800 hover:text-white" : "bg-blue-600 hover:bg-blue-700"
-                }
+              <button
+                className={`rounded-md px-4 py-2 text-sm font-medium ${
+                  isFollowing
+                    ? "border border-gray-700 text-white hover:bg-gray-800"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
+                }`}
                 onClick={toggleFollow}
               >
                 {isFollowing ? "Following" : "Follow"}
-              </Button>
+              </button>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">More options</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="border-gray-800 bg-gray-900 text-white">
-                  <DropdownMenuItem className="cursor-pointer">Save to playlist</DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer">Not interested</DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-gray-800" />
-                  <DropdownMenuItem className="cursor-pointer text-red-400">Report</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="relative">
+                <button
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-gray-800"
+                >
+                  <MoreHorizontal className="h-5 w-5" />
+                </button>
+                {showDropdown && (
+                  <div className="absolute right-0 z-50 mt-2 w-48 rounded-md border border-gray-800 bg-gray-900 py-1 shadow-lg">
+                    <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-gray-800">
+                      Save to playlist
+                    </button>
+                    <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-gray-800">
+                      Not interested
+                    </button>
+                    <div className="my-1 h-px bg-gray-800" />
+                    <button className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-gray-800">
+                      Report
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          <Separator className="my-4 bg-gray-800" />
+          <div className="my-4 h-px bg-gray-800" />
 
           <div className="rounded-lg bg-gray-800 p-4">
             <p className="text-sm text-gray-300">{video.description}</p>
           </div>
         </div>
-      </Card>
+      </div>
 
-      <VideoComments videoId={video.id} commentCount={video.comments} />
+      <VideoComments videoId={video.id} />
     </div>
   )
 }

@@ -1,149 +1,139 @@
 "use client"
 
-import { useState, useRef } from "react"
-import Image from "next/image"
+import { useState } from "react"
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 
-// Mock data for stories
 const mockStories = [
   {
     id: 1,
     user: {
-      id: 1,
       name: "Your Story",
       avatar: "/placeholder-user.jpg",
     },
-    image: null,
+    image: "/placeholder.svg",
     isYourStory: true,
   },
   {
     id: 2,
     user: {
-      id: 2,
-      name: "Jane Smith",
+      name: "John Doe",
       avatar: "/placeholder-user.jpg",
     },
     image: "/placeholder.svg",
-    isYourStory: false,
   },
   {
     id: 3,
     user: {
-      id: 3,
-      name: "Mike Johnson",
+      name: "Jane Smith",
       avatar: "/placeholder-user.jpg",
     },
     image: "/placeholder.svg",
-    isYourStory: false,
   },
   {
     id: 4,
     user: {
-      id: 4,
-      name: "Sarah Williams",
+      name: "Mike Johnson",
       avatar: "/placeholder-user.jpg",
     },
     image: "/placeholder.svg",
-    isYourStory: false,
   },
   {
     id: 5,
     user: {
-      id: 5,
-      name: "David Brown",
+      name: "Sarah Wilson",
       avatar: "/placeholder-user.jpg",
     },
     image: "/placeholder.svg",
-    isYourStory: false,
   },
   {
     id: 6,
     user: {
-      id: 6,
-      name: "Emily Davis",
+      name: "Alex Brown",
       avatar: "/placeholder-user.jpg",
     },
     image: "/placeholder.svg",
-    isYourStory: false,
   },
 ]
 
 export default function StoriesSection() {
-  const [stories] = useState(mockStories)
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [scrollPosition, setScrollPosition] = useState(0)
+  const scrollAmount = 200
 
-  const scroll = (direction: "left" | "right") => {
-    if (scrollContainerRef.current) {
-      const { current } = scrollContainerRef
-      const scrollAmount = 200
+  const scrollLeft = () => {
+    const newPosition = Math.max(0, scrollPosition - scrollAmount)
+    setScrollPosition(newPosition)
+    const container = document.getElementById("stories-container")
+    if (container) {
+      container.scrollTo({ left: newPosition, behavior: "smooth" })
+    }
+  }
 
-      if (direction === "left") {
-        current.scrollLeft -= scrollAmount
-      } else {
-        current.scrollLeft += scrollAmount
-      }
+  const scrollRight = () => {
+    const container = document.getElementById("stories-container")
+    if (container) {
+      const maxScroll = container.scrollWidth - container.clientWidth
+      const newPosition = Math.min(maxScroll, scrollPosition + scrollAmount)
+      setScrollPosition(newPosition)
+      container.scrollTo({ left: newPosition, behavior: "smooth" })
     }
   }
 
   return (
     <div className="relative">
-      <div className="absolute -left-4 top-1/2 z-10 -translate-y-1/2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 rounded-full bg-gray-800 shadow-md"
-          onClick={() => scroll("left")}
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-      </div>
-
       <div
-        ref={scrollContainerRef}
-        className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide"
-        style={{ scrollBehavior: "smooth" }}
+        id="stories-container"
+        className="no-scrollbar flex space-x-2 overflow-x-hidden scroll-smooth"
       >
-        {stories.map((story) => (
-          <Card
+        {mockStories.map((story) => (
+          <div
             key={story.id}
-            className="relative h-48 w-28 flex-shrink-0 overflow-hidden rounded-xl border-gray-800 bg-gray-900"
+            className="relative h-48 w-32 flex-none cursor-pointer overflow-hidden rounded-lg"
           >
-            {story.image ? (
-              <Image src={story.image || "/placeholder.svg"} alt={story.user.name} fill className="object-cover" />
-            ) : (
-              <div className="flex h-full items-center justify-center bg-gray-800">
-                <Plus className="h-8 w-8 text-gray-400" />
-              </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/60" />
-            <div className="absolute left-0 top-0 p-2">
-              <div className="rounded-full border-2 border-blue-500 p-0.5">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={story.user.avatar} alt={story.user.name} />
-                  <AvatarFallback>{story.user.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-              </div>
+            <img
+              src={story.image}
+              alt={story.user.name}
+              className="h-full w-full object-cover transition-transform duration-200 hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60" />
+            <div className="absolute inset-x-0 bottom-0 p-3">
+              {story.isYourStory ? (
+                <div className="mb-2 flex justify-center">
+                  <button className="rounded-full bg-blue-600 p-2 hover:bg-blue-700">
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="mb-2 flex justify-center">
+                  <div className="h-8 w-8 overflow-hidden rounded-full border-2 border-blue-500">
+                    <img
+                      src={story.user.avatar}
+                      alt={story.user.name}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+              <p className="text-center text-sm font-medium text-white">{story.user.name}</p>
             </div>
-            <div className="absolute bottom-0 left-0 p-2">
-              <p className="text-xs font-medium text-white">{story.user.name}</p>
-            </div>
-          </Card>
+          </div>
         ))}
       </div>
 
-      <div className="absolute -right-4 top-1/2 z-10 -translate-y-1/2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 rounded-full bg-gray-800 shadow-md"
-          onClick={() => scroll("right")}
+      {scrollPosition > 0 && (
+        <button
+          onClick={scrollLeft}
+          className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full bg-gray-900/80 p-1 text-white shadow-lg hover:bg-gray-900"
         >
-          <ChevronRight className="h-5 w-5" />
-        </Button>
-      </div>
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+      )}
+
+      <button
+        onClick={scrollRight}
+        className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full bg-gray-900/80 p-1 text-white shadow-lg hover:bg-gray-900"
+      >
+        <ChevronRight className="h-6 w-6" />
+      </button>
     </div>
   )
 }

@@ -4,16 +4,6 @@ import { useState, useRef } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Heart, MessageCircle, Share2, Volume2, VolumeX, Pause, Play, MoreHorizontal } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 interface VideoCardProps {
   video: {
@@ -42,6 +32,7 @@ export default function VideoCard({ video }: VideoCardProps) {
   const [isMuted, setIsMuted] = useState(true)
   const [isLiked, setIsLiked] = useState(false)
   const [likesCount, setLikesCount] = useState(video.likes)
+  const [showDropdown, setShowDropdown] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
 
   const togglePlay = () => {
@@ -78,29 +69,14 @@ export default function VideoCard({ video }: VideoCardProps) {
   }
 
   return (
-    <Card className="overflow-hidden border-gray-800 bg-gray-900">
+    <div className="overflow-hidden rounded-lg border border-gray-800 bg-gray-900">
       <div className="flex flex-col md:flex-row">
         <div className="relative aspect-video w-full md:w-2/3">
           <Link href={`/video/${video.id}`}>
-            {/* For demo purposes, using an image instead of video */}
             <Image src={video.thumbnail || "/placeholder.svg"} alt={video.title} fill className="object-cover" />
 
-            {/* This would be a real video in a production app */}
-            {/* <video
-            ref={videoRef}
-            src={video.url}
-            poster={video.thumbnail}
-            className="h-full w-full object-cover"
-            loop
-            muted={isMuted}
-            playsInline
-            onClick={togglePlay}
-          /> */}
-
             <div className="absolute inset-0 flex items-center justify-center">
-              <Button
-                variant="ghost"
-                size="icon"
+              <button
                 className="h-16 w-16 rounded-full bg-black/50 text-white hover:bg-black/70"
                 onClick={(e) => {
                   e.preventDefault()
@@ -108,19 +84,17 @@ export default function VideoCard({ video }: VideoCardProps) {
                 }}
               >
                 {isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
-              </Button>
+              </button>
             </div>
           </Link>
 
           <div className="absolute bottom-4 right-4 flex space-x-2">
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               className="h-8 w-8 rounded-full bg-black/50 text-white hover:bg-black/70"
               onClick={toggleMute}
             >
               {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -128,10 +102,9 @@ export default function VideoCard({ video }: VideoCardProps) {
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3">
               <Link href={`/profile/${video.user.username}`}>
-                <Avatar>
-                  <AvatarImage src={video.user.avatar} alt={video.user.name} />
-                  <AvatarFallback>{video.user.name.charAt(0)}</AvatarFallback>
-                </Avatar>
+                <div className="relative h-10 w-10 overflow-hidden rounded-full">
+                  <Image src={video.user.avatar} alt={video.user.name} fill className="object-cover" />
+                </div>
               </Link>
               <div>
                 <Link href={`/video/${video.id}`} className="font-semibold text-white hover:underline">
@@ -146,50 +119,56 @@ export default function VideoCard({ video }: VideoCardProps) {
               </div>
             </div>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span className="sr-only">More options</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="border-gray-800 bg-gray-900 text-white">
-                <DropdownMenuItem className="cursor-pointer">Save to playlist</DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">Not interested</DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-gray-800" />
-                <DropdownMenuItem className="cursor-pointer text-red-400">Report</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="relative">
+              <button
+                onClick={() => setShowDropdown(!showDropdown)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-800"
+              >
+                <MoreHorizontal className="h-5 w-5" />
+              </button>
+              {showDropdown && (
+                <div className="absolute right-0 z-50 mt-2 w-56 rounded-md border border-gray-800 bg-gray-900 py-1 shadow-lg">
+                  <button className="flex w-full items-center px-4 py-2 text-sm text-white hover:bg-gray-800">
+                    Save to playlist
+                  </button>
+                  <button className="flex w-full items-center px-4 py-2 text-sm text-white hover:bg-gray-800">
+                    Not interested
+                  </button>
+                  <div className="my-1 h-px bg-gray-800" />
+                  <button className="flex w-full items-center px-4 py-2 text-sm text-red-400 hover:bg-gray-800">
+                    Report
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <p className="mt-3 text-sm text-gray-300">{video.description}</p>
 
           <div className="mt-4 flex items-center justify-between border-t border-gray-800 pt-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`flex items-center gap-1 ${isLiked ? "text-red-500" : "text-gray-400"}`}
+            <button
               onClick={toggleLike}
+              className={`flex items-center space-x-1 ${isLiked ? "text-red-500" : "text-gray-400"}`}
             >
               <Heart className={`h-5 w-5 ${isLiked ? "fill-red-500" : ""}`} />
               <span>{formatNumber(likesCount)}</span>
-            </Button>
+            </button>
 
             <Link href={`/video/${video.id}#comments`}>
-              <Button variant="ghost" size="sm" className="flex items-center gap-1 text-gray-400">
+              <button className="flex items-center space-x-1 text-gray-400 hover:text-white">
                 <MessageCircle className="h-5 w-5" />
                 <span>{formatNumber(video.comments)}</span>
-              </Button>
+              </button>
             </Link>
 
-            <Button variant="ghost" size="sm" className="flex items-center gap-1 text-gray-400">
+            <button className="flex items-center space-x-1 text-gray-400 hover:text-white">
               <Share2 className="h-5 w-5" />
               <span>{formatNumber(video.shares)}</span>
-            </Button>
+            </button>
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   )
 }
 

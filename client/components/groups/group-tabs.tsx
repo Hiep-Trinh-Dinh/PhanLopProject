@@ -1,42 +1,63 @@
 "use client"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import PostFeed from "@/components/home/post-feed"
-import CreatePostCard from "@/components/home/create-post-card"
-import GroupMembers from "@/components/groups/group-members"
-import GroupMedia from "@/components/groups/group-media"
-import GroupAbout from "@/components/groups/group-about"
+
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { Grid, Image, Info, Users } from "lucide-react"
 
 interface GroupTabsProps {
   groupId: number
 }
 
 export default function GroupTabs({ groupId }: GroupTabsProps) {
+  const pathname = usePathname()
+
+  const tabs = [
+    {
+      name: "Posts",
+      href: `/groups/${groupId}`,
+      icon: Grid,
+    },
+    {
+      name: "About",
+      href: `/groups/${groupId}/about`,
+      icon: Info,
+    },
+    {
+      name: "Media",
+      href: `/groups/${groupId}/media`,
+      icon: Image,
+    },
+    {
+      name: "Members",
+      href: `/groups/${groupId}/members`,
+      icon: Users,
+    },
+  ]
+
   return (
-    <Tabs defaultValue="discussion" className="w-full">
-      <TabsList className="grid w-full grid-cols-4 bg-gray-800">
-        <TabsTrigger value="discussion">Discussion</TabsTrigger>
-        <TabsTrigger value="members">Members</TabsTrigger>
-        <TabsTrigger value="media">Media</TabsTrigger>
-        <TabsTrigger value="about">About</TabsTrigger>
-      </TabsList>
+    <div className="mb-6 border-b border-gray-800">
+      <div className="flex space-x-1">
+        {tabs.map((tab) => {
+          const Icon = tab.icon
+          const isActive = pathname === tab.href
 
-      <TabsContent value="discussion" className="mt-6 space-y-6">
-        <CreatePostCard />
-        <PostFeed />
-      </TabsContent>
-
-      <TabsContent value="members" className="mt-6">
-        <GroupMembers groupId={groupId} />
-      </TabsContent>
-
-      <TabsContent value="media" className="mt-6">
-        <GroupMedia groupId={groupId} />
-      </TabsContent>
-
-      <TabsContent value="about" className="mt-6">
-        <GroupAbout groupId={groupId} />
-      </TabsContent>
-    </Tabs>
+          return (
+            <Link
+              key={tab.name}
+              href={tab.href}
+              className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium ${
+                isActive
+                  ? "border-b-2 border-blue-500 text-blue-500"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              <span>{tab.name}</span>
+            </Link>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 

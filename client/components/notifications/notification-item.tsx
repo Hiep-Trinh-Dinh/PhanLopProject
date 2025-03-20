@@ -1,8 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
 import { Bell, Check, MessageCircle, ThumbsUp, UserPlus, Users } from "lucide-react"
 
 type NotificationType = "like" | "comment" | "friend_request" | "friend_accepted" | "group_invite" | "mention"
@@ -69,11 +67,15 @@ export default function NotificationItem({
     >
       <div className="flex items-start space-x-4">
         <div className="relative">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={user.avatar} alt={user.name} />
-            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <div className="absolute -right-1 -top-1 rounded-full p-1 bg-gray-900">{getNotificationIcon(type)}</div>
+          <div className="relative h-10 w-10 overflow-hidden rounded-full">
+            <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">
+              {user.name.charAt(0)}
+            </div>
+          </div>
+          <div className="absolute -right-1 -top-1 rounded-full p-1 bg-gray-900">
+            {getNotificationIcon(type)}
+          </div>
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between">
@@ -89,40 +91,35 @@ export default function NotificationItem({
 
           {type === "friend_request" && onAcceptFriendRequest && onRejectFriendRequest && (
             <div className="flex space-x-2 mt-3">
-              <Button
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700"
+              <button
+                className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                 onClick={(e) => {
                   e.stopPropagation()
                   onAcceptFriendRequest(id)
                 }}
               >
                 Accept
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-gray-700 hover:bg-gray-700 hover:text-white"
+              </button>
+              <button
+                className="px-3 py-1.5 text-sm font-medium text-white border border-gray-700 rounded-md hover:bg-gray-700"
                 onClick={(e) => {
                   e.stopPropagation()
                   onRejectFriendRequest(id)
                 }}
               >
                 Decline
-              </Button>
+              </button>
             </div>
           )}
 
           {actionText && actionLink && (
             <div className="mt-3">
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-gray-700 hover:bg-gray-700 hover:text-white"
-                asChild
+              <Link
+                href={actionLink}
+                className="inline-flex px-3 py-1.5 text-sm font-medium text-white border border-gray-700 rounded-md hover:bg-gray-700"
               >
-                <Link href={actionLink}>{actionText}</Link>
-              </Button>
+                {actionText}
+              </Link>
             </div>
           )}
         </div>

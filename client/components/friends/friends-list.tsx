@@ -3,12 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { MessageCircle, Search, UserMinus } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 
-// Mock data for friends
 const mockFriends = [
   {
     id: 1,
@@ -58,23 +53,26 @@ export default function FriendsList() {
   const [friends, setFriends] = useState(mockFriends)
   const [searchQuery, setSearchQuery] = useState("")
 
-  const filteredFriends = friends.filter((friend) => friend.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredFriends = friends.filter((friend) => 
+    friend.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   const removeFriend = (friendId: number) => {
     setFriends(friends.filter((friend) => friend.id !== friendId))
   }
 
   return (
-    <Card className="border-gray-800 bg-gray-900">
-      <CardHeader className="border-b border-gray-800 pb-3">
-        <CardTitle>All Friends ({friends.length})</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4">
+    <div className="rounded-lg border border-gray-800 bg-gray-900">
+      <div className="border-b border-gray-800 p-4">
+        <h2 className="text-lg font-semibold">All Friends ({friends.length})</h2>
+      </div>
+      <div className="p-4">
         <div className="mb-4 flex items-center rounded-md border border-gray-800 bg-gray-800 px-3 py-2">
           <Search className="mr-2 h-4 w-4 text-gray-400" />
-          <Input
+          <input
+            type="text"
             placeholder="Search friends"
-            className="border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="w-full border-0 bg-transparent p-0 text-white placeholder-gray-400 focus:outline-none"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -84,10 +82,16 @@ export default function FriendsList() {
           {filteredFriends.map((friend) => (
             <div key={friend.id} className="flex flex-col rounded-lg border border-gray-800 bg-gray-800 p-4">
               <div className="flex items-center space-x-3">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={friend.avatar} alt={friend.name} />
-                  <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
-                </Avatar>
+                <div className="relative h-12 w-12 overflow-hidden rounded-full">
+                  <img 
+                    src={friend.avatar} 
+                    alt={friend.name}
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">
+                    {friend.name.charAt(0)}
+                  </div>
+                </div>
                 <div>
                   <Link href={`/profile/${friend.username}`} className="font-semibold text-white hover:underline">
                     {friend.name}
@@ -96,27 +100,26 @@ export default function FriendsList() {
                 </div>
               </div>
               <div className="mt-4 flex space-x-2">
-                <Button variant="default" size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700" asChild>
-                  <Link href={`/messages/${friend.username}`}>
-                    <MessageCircle className="mr-1 h-4 w-4" />
-                    <span>Message</span>
-                  </Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 border-gray-700 hover:bg-gray-700 hover:text-white"
+                <Link
+                  href={`/messages/${friend.username}`}
+                  className="inline-flex flex-1 items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                >
+                  <MessageCircle className="mr-1 h-4 w-4" />
+                  <span>Message</span>
+                </Link>
+                <button
+                  className="inline-flex flex-1 items-center justify-center rounded-md border border-gray-700 px-3 py-2 text-sm font-medium hover:bg-gray-700 hover:text-white"
                   onClick={() => removeFriend(friend.id)}
                 >
                   <UserMinus className="mr-1 h-4 w-4" />
                   <span>Remove</span>
-                </Button>
+                </button>
               </div>
             </div>
           ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 

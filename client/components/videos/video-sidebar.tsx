@@ -3,9 +3,6 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { UserPlus } from "lucide-react"
 
 // Mock data for suggested creators
@@ -113,20 +110,19 @@ export default function VideoSidebar() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-gray-800 bg-gray-900">
-        <CardHeader className="border-b border-gray-800 pb-3">
-          <CardTitle className="text-lg">Suggested Creators</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
+      <div className="rounded-lg border border-gray-800 bg-gray-900">
+        <div className="border-b border-gray-800 p-4">
+          <h2 className="text-lg font-semibold text-white">Suggested Creators</h2>
+        </div>
+        <div className="p-4">
           <div className="space-y-4">
             {creators.map((creator) => (
               <div key={creator.id} className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Link href={`/profile/${creator.username}`}>
-                    <Avatar>
-                      <AvatarImage src={creator.avatar} alt={creator.name} />
-                      <AvatarFallback>{creator.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
+                    <div className="relative h-10 w-10 overflow-hidden rounded-full">
+                      <img src={creator.avatar} alt={creator.name} className="h-full w-full object-cover" />
+                    </div>
                   </Link>
                   <div>
                     <Link href={`/profile/${creator.username}`} className="font-medium text-white hover:underline">
@@ -135,14 +131,12 @@ export default function VideoSidebar() {
                     <p className="text-xs text-gray-400">{formatNumber(creator.followers)} followers</p>
                   </div>
                 </div>
-                <Button
-                  variant={creator.isFollowing ? "outline" : "default"}
-                  size="sm"
-                  className={
+                <button
+                  className={`flex items-center rounded-md px-3 py-1.5 text-sm font-medium ${
                     creator.isFollowing
-                      ? "border-gray-700 hover:bg-gray-800 hover:text-white"
-                      : "bg-blue-600 hover:bg-blue-700"
-                  }
+                      ? "border border-gray-700 text-white hover:bg-gray-800"
+                      : "bg-blue-600 text-white hover:bg-blue-700"
+                  }`}
                   onClick={() => toggleFollow(creator.id)}
                 >
                   {creator.isFollowing ? (
@@ -153,18 +147,18 @@ export default function VideoSidebar() {
                       Follow
                     </>
                   )}
-                </Button>
+                </button>
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="border-gray-800 bg-gray-900">
-        <CardHeader className="border-b border-gray-800 pb-3">
-          <CardTitle className="text-lg">Trending Topics</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
+      <div className="rounded-lg border border-gray-800 bg-gray-900">
+        <div className="border-b border-gray-800 p-4">
+          <h2 className="text-lg font-semibold text-white">Trending Topics</h2>
+        </div>
+        <div className="p-4">
           <div className="flex flex-wrap gap-2">
             {trendingTopics.map((topic) => (
               <Link
@@ -176,14 +170,14 @@ export default function VideoSidebar() {
               </Link>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="border-gray-800 bg-gray-900">
-        <CardHeader className="border-b border-gray-800 pb-3">
-          <CardTitle className="text-lg">Popular Videos</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
+      <div className="rounded-lg border border-gray-800 bg-gray-900">
+        <div className="border-b border-gray-800 p-4">
+          <h2 className="text-lg font-semibold text-white">Popular Videos</h2>
+        </div>
+        <div className="p-4">
           <div className="space-y-4">
             {popularVideos.map((video) => (
               <div key={video.id} className="space-y-2">
@@ -200,8 +194,8 @@ export default function VideoSidebar() {
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

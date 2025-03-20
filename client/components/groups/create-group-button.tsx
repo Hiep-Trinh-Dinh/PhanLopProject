@@ -1,23 +1,8 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Plus } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function CreateGroupButton() {
   const [open, setOpen] = useState(false)
@@ -27,7 +12,6 @@ export default function CreateGroupButton() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // In a real app, you would handle group creation here
     console.log("Creating group:", { groupName, groupDescription, privacy })
     setOpen(false)
     resetForm()
@@ -40,77 +24,95 @@ export default function CreateGroupButton() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="mr-1 h-4 w-4" />
-          Create Group
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="border-gray-800 bg-gray-900 text-white sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Create New Group</DialogTitle>
-          <DialogDescription className="text-gray-400">
-            Create a group to connect with people who share your interests.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="group-name">Group Name</Label>
-              <Input
-                id="group-name"
-                placeholder="Enter group name"
-                className="border-gray-700 bg-gray-800 text-white"
-                value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="group-description">Description</Label>
-              <Textarea
-                id="group-description"
-                placeholder="What's your group about?"
-                className="min-h-[100px] border-gray-700 bg-gray-800 text-white"
-                value={groupDescription}
-                onChange={(e) => setGroupDescription(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="privacy">Privacy</Label>
-              <Select value={privacy} onValueChange={setPrivacy}>
-                <SelectTrigger className="border-gray-700 bg-gray-800 text-white">
-                  <SelectValue placeholder="Select privacy setting" />
-                </SelectTrigger>
-                <SelectContent className="border-gray-700 bg-gray-800 text-white">
-                  <SelectItem value="public">Public</SelectItem>
-                  <SelectItem value="private">Private</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-400">
-                {privacy === "public"
-                  ? "Anyone can see who's in the group and what they post."
-                  : "Only members can see who's in the group and what they post."}
+    <div>
+      <button
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+      >
+        <Plus className="mr-1 h-4 w-4" />
+        Create Group
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-[500px] rounded-lg border border-gray-800 bg-gray-900 p-6 text-white">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold">Create New Group</h2>
+              <p className="text-sm text-gray-400">
+                Create a group to connect with people who share your interests.
               </p>
             </div>
+
+            <form onSubmit={handleSubmit}>
+              <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                  <label htmlFor="group-name" className="text-sm font-medium">
+                    Group Name
+                  </label>
+                  <input
+                    id="group-name"
+                    placeholder="Enter group name"
+                    className="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="group-description" className="text-sm font-medium">
+                    Description
+                  </label>
+                  <textarea
+                    id="group-description"
+                    placeholder="What's your group about?"
+                    className="min-h-[100px] w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={groupDescription}
+                    onChange={(e) => setGroupDescription(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="privacy" className="text-sm font-medium">
+                    Privacy
+                  </label>
+                  <select
+                    value={privacy}
+                    onChange={(e) => setPrivacy(e.target.value)}
+                    className="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="public">Public</option>
+                    <option value="private">Private</option>
+                  </select>
+                  <p className="text-xs text-gray-400">
+                    {privacy === "public"
+                      ? "Anyone can see who's in the group and what they post."
+                      : "Only members can see who's in the group and what they post."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  className="rounded-md border border-gray-700 px-4 py-2 hover:bg-gray-800 hover:text-white"
+                  onClick={() => setOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-md bg-blue-600 px-4 py-2 hover:bg-blue-700 disabled:opacity-50"
+                  disabled={!groupName.trim()}
+                >
+                  Create Group
+                </button>
+              </div>
+            </form>
           </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              className="border-gray-700 hover:bg-gray-800 hover:text-white"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={!groupName.trim()}>
-              Create Group
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </div>
+      )}
+    </div>
   )
 }
 

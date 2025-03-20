@@ -3,11 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Check, X } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-// Mock data for friend requests
 const mockFriendRequests = [
   {
     id: 1,
@@ -30,33 +26,31 @@ export default function FriendRequests() {
 
   const acceptRequest = (requestId: number) => {
     setFriendRequests(friendRequests.filter((request) => request.id !== requestId))
-    // In a real app, you would handle accepting the friend request here
   }
 
   const rejectRequest = (requestId: number) => {
     setFriendRequests(friendRequests.filter((request) => request.id !== requestId))
-    // In a real app, you would handle rejecting the friend request here
   }
 
   if (friendRequests.length === 0) {
     return (
-      <Card className="border-gray-800 bg-gray-900">
-        <CardHeader className="border-b border-gray-800 pb-3">
-          <CardTitle>Friend Requests</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
+      <div className="rounded-lg border border-gray-800 bg-gray-900">
+        <div className="border-b border-gray-800 p-4">
+          <h2 className="text-lg font-semibold">Friend Requests</h2>
+        </div>
+        <div className="p-4">
           <p className="text-center text-gray-400">No friend requests at the moment.</p>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Card className="border-gray-800 bg-gray-900">
-      <CardHeader className="border-b border-gray-800 pb-3">
-        <CardTitle>Friend Requests ({friendRequests.length})</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4">
+    <div className="rounded-lg border border-gray-800 bg-gray-900">
+      <div className="border-b border-gray-800 p-4">
+        <h2 className="text-lg font-semibold">Friend Requests ({friendRequests.length})</h2>
+      </div>
+      <div className="p-4">
         <div className="space-y-4">
           {friendRequests.map((request) => (
             <div
@@ -64,10 +58,16 @@ export default function FriendRequests() {
               className="flex items-center justify-between rounded-lg border border-gray-800 bg-gray-800 p-3"
             >
               <div className="flex items-center space-x-3">
-                <Avatar>
-                  <AvatarImage src={request.avatar} alt={request.name} />
-                  <AvatarFallback>{request.name.charAt(0)}</AvatarFallback>
-                </Avatar>
+                <div className="relative h-10 w-10 overflow-hidden rounded-full">
+                  <img 
+                    src={request.avatar} 
+                    alt={request.name}
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">
+                    {request.name.charAt(0)}
+                  </div>
+                </div>
                 <div>
                   <Link href={`/profile/${request.username}`} className="font-semibold text-white hover:underline">
                     {request.name}
@@ -76,28 +76,24 @@ export default function FriendRequests() {
                 </div>
               </div>
               <div className="flex space-x-2">
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-700"
+                <button
+                  className="inline-flex h-8 items-center justify-center rounded-md bg-blue-600 px-2 text-sm font-medium text-white hover:bg-blue-700"
                   onClick={() => acceptRequest(request.id)}
                 >
                   <Check className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-gray-700 hover:bg-gray-700 hover:text-white"
+                </button>
+                <button
+                  className="inline-flex h-8 items-center justify-center rounded-md border border-gray-700 px-2 text-sm font-medium hover:bg-gray-700 hover:text-white"
                   onClick={() => rejectRequest(request.id)}
                 >
                   <X className="h-4 w-4" />
-                </Button>
+                </button>
               </div>
             </div>
           ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 

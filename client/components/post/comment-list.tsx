@@ -3,17 +3,38 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Heart, MoreHorizontal, Reply } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+
+interface User {
+  id: number
+  name: string
+  username: string
+  avatar: string
+}
+
+interface Reply {
+  id: number
+  user: User
+  content: string
+  timestamp: string
+  likes: number
+  hasLiked: boolean
+}
+
+interface Comment {
+  id: number
+  user: User
+  content: string
+  timestamp: string
+  likes: number
+  hasLiked: boolean
+  replies: Reply[]
+}
 
 interface CommentListProps {
   postId: number
 }
 
-// Mock data for comments
-const mockComments = {
+const mockComments: Record<number, Comment[]> = {
   1: [
     {
       id: 1,
@@ -139,6 +160,7 @@ export default function CommentList({ postId }: CommentListProps) {
   const [replyingTo, setReplyingTo] = useState<number | null>(null)
   const [replyText, setReplyText] = useState("")
   const [isSubmittingReply, setIsSubmittingReply] = useState(false)
+  const [showDropdown, setShowDropdown] = useState<number | null>(null)
 
   const handleLikeComment = (commentId: number) => {
     setComments(
@@ -193,12 +215,12 @@ export default function CommentList({ postId }: CommentListProps) {
               replies: [
                 ...comment.replies,
                 {
-                  id: Math.floor(Math.random() * 1000) + 200, // Generate a random ID
+                  id: Math.floor(Math.random() * 1000) + 200,
                   user: {
-                    id: 999, // Current user ID
-                    name: "John Doe", // Current user name
-                    username: "johndoe", // Current user username
-                    avatar: "/placeholder-user.jpg", // Current user avatar
+                    id: 999,
+                    name: "John Doe",
+                    username: "johndoe",
+                    avatar: "/placeholder-user.jpg",
                   },
                   content: replyText,
                   timestamp: "Just now",
@@ -235,10 +257,12 @@ export default function CommentList({ postId }: CommentListProps) {
           <div key={comment.id} className="space-y-3">
             <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
               <div className="flex items-start space-x-3">
-                <Avatar>
-                  <AvatarImage src={comment.user.avatar} alt={comment.user.name} />
-                  <AvatarFallback>{comment.user.name.charAt(0)}</AvatarFallback>
-                </Avatar>
+                <div className="relative h-8 w-8 overflow-hidden rounded-full">
+                  <img src={comment.user.avatar} alt={comment.user.name} className="h-full w-full object-cover" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">
+                    {comment.user.name.charAt(0)}
+                  </div>
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between">
                     <div>
@@ -250,39 +274,42 @@ export default function CommentList({ postId }: CommentListProps) {
                       </Link>
                       <p className="text-sm text-gray-300">{comment.content}</p>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">More options</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="border-gray-800 bg-gray-900 text-white">
-                        <DropdownMenuItem className="cursor-pointer">Report Comment</DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer">Copy Text</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowDropdown(showDropdown === comment.id ? null : comment.id)}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-gray-800"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">More options</span>
+                      </button>
+                      {showDropdown === comment.id && (
+                        <div className="absolute right-0 z-50 mt-1 w-48 rounded-md border border-gray-800 bg-gray-900 py-1 shadow-lg">
+                          <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-gray-800">
+                            Report Comment
+                          </button>
+                          <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-gray-800">
+                            Copy Text
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="mt-2 flex items-center space-x-4 text-xs text-gray-400">
                     <span>{comment.timestamp}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`h-auto p-0 ${comment.hasLiked ? "text-blue-500" : "text-gray-400"}`}
+                    <button
+                      className={`flex items-center space-x-1 ${comment.hasLiked ? "text-blue-500" : "text-gray-400"}`}
                       onClick={() => handleLikeComment(comment.id)}
                     >
-                      <Heart className={`mr-1 h-4 w-4 ${comment.hasLiked ? "fill-blue-500" : ""}`} />
+                      <Heart className={`h-4 w-4 ${comment.hasLiked ? "fill-blue-500" : ""}`} />
                       <span>{comment.likes} Likes</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto p-0 text-gray-400"
+                    </button>
+                    <button
+                      className="flex items-center space-x-1 text-gray-400"
                       onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
                     >
-                      <Reply className="mr-1 h-4 w-4" />
+                      <Reply className="h-4 w-4" />
                       <span>Reply</span>
-                    </Button>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -291,34 +318,31 @@ export default function CommentList({ postId }: CommentListProps) {
             {/* Reply form */}
             {replyingTo === comment.id && (
               <div className="ml-10 flex items-start space-x-2">
-                <Avatar className="h-7 w-7">
-                  <AvatarImage src="/placeholder-user.jpg" alt="Your avatar" />
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
+                <div className="relative h-7 w-7 overflow-hidden rounded-full">
+                  <img src="/placeholder-user.jpg" alt="Your avatar" className="h-full w-full object-cover" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">U</div>
+                </div>
                 <div className="flex-1">
-                  <Textarea
+                  <textarea
                     placeholder={`Reply to ${comment.user.name}...`}
-                    className="min-h-[60px] resize-none border-gray-800 bg-gray-800 text-white"
+                    className="min-h-[60px] w-full resize-none rounded-md border border-gray-800 bg-gray-800 p-2 text-sm text-white placeholder-gray-400 focus:border-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-700"
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                   />
                   <div className="mt-2 flex justify-end space-x-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-gray-700 hover:bg-gray-800 hover:text-white"
+                    <button
+                      className="rounded-md border border-gray-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
                       onClick={() => setReplyingTo(null)}
                     >
                       Cancel
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="bg-blue-600 hover:bg-blue-700"
+                    </button>
+                    <button
+                      className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                       onClick={() => handleSubmitReply(comment.id)}
                       disabled={!replyText.trim() || isSubmittingReply}
                     >
                       {isSubmittingReply ? "Posting..." : "Reply"}
-                    </Button>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -330,10 +354,12 @@ export default function CommentList({ postId }: CommentListProps) {
                 {comment.replies.map((reply) => (
                   <div key={reply.id} className="rounded-lg border border-gray-800 bg-gray-900 p-3">
                     <div className="flex items-start space-x-3">
-                      <Avatar className="h-7 w-7">
-                        <AvatarImage src={reply.user.avatar} alt={reply.user.name} />
-                        <AvatarFallback>{reply.user.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
+                      <div className="relative h-7 w-7 overflow-hidden rounded-full">
+                        <img src={reply.user.avatar} alt={reply.user.name} className="h-full w-full object-cover" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">
+                          {reply.user.name.charAt(0)}
+                        </div>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between">
                           <div>
@@ -345,30 +371,35 @@ export default function CommentList({ postId }: CommentListProps) {
                             </Link>
                             <p className="text-sm text-gray-300">{reply.content}</p>
                           </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <MoreHorizontal className="h-3 w-3" />
-                                <span className="sr-only">More options</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="border-gray-800 bg-gray-900 text-white">
-                              <DropdownMenuItem className="cursor-pointer">Report Reply</DropdownMenuItem>
-                              <DropdownMenuItem className="cursor-pointer">Copy Text</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <div className="relative">
+                            <button
+                              onClick={() => setShowDropdown(showDropdown === reply.id ? null : reply.id)}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-gray-800"
+                            >
+                              <MoreHorizontal className="h-3 w-3" />
+                              <span className="sr-only">More options</span>
+                            </button>
+                            {showDropdown === reply.id && (
+                              <div className="absolute right-0 z-50 mt-1 w-48 rounded-md border border-gray-800 bg-gray-900 py-1 shadow-lg">
+                                <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-gray-800">
+                                  Report Reply
+                                </button>
+                                <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-gray-800">
+                                  Copy Text
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="mt-1 flex items-center space-x-4 text-xs text-gray-400">
                           <span>{reply.timestamp}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className={`h-auto p-0 ${reply.hasLiked ? "text-blue-500" : "text-gray-400"}`}
+                          <button
+                            className={`flex items-center space-x-1 ${reply.hasLiked ? "text-blue-500" : "text-gray-400"}`}
                             onClick={() => handleLikeReply(comment.id, reply.id)}
                           >
-                            <Heart className={`mr-1 h-3 w-3 ${reply.hasLiked ? "fill-blue-500" : ""}`} />
+                            <Heart className={`h-3 w-3 ${reply.hasLiked ? "fill-blue-500" : ""}`} />
                             <span>{reply.likes} Likes</span>
-                          </Button>
+                          </button>
                         </div>
                       </div>
                     </div>

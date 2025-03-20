@@ -1,13 +1,8 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Camera, Image, Smile, Video } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
 
 export default function CreatePostCard() {
   const [postText, setPostText] = useState("")
@@ -20,49 +15,67 @@ export default function CreatePostCard() {
   }
 
   return (
-    <Card className="border-gray-800 bg-gray-900">
+    <div className="rounded-lg border border-gray-800 bg-gray-900">
       <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4 pt-4">
+        <div className="space-y-4 p-4">
           <div className="flex gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src="/placeholder-user.jpg" alt="User" />
-              <AvatarFallback>U</AvatarFallback>
-            </Avatar>
-            <Textarea
+            <div className="relative h-10 w-10 overflow-hidden rounded-full">
+              <img src="/placeholder-user.jpg" alt="User" className="h-full w-full object-cover" />
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">
+                U
+              </div>
+            </div>
+            <textarea
               placeholder="What's on your mind?"
-              className="min-h-[80px] flex-1 resize-none border-gray-800 bg-gray-800 text-white"
+              className="min-h-[80px] w-full resize-none rounded-md border border-gray-800 bg-gray-800 p-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={postText}
               onChange={(e) => setPostText(e.target.value)}
             />
           </div>
-        </CardContent>
-        <CardFooter className="border-t border-gray-800 bg-gray-900 px-4 py-3">
+        </div>
+        <div className="border-t border-gray-800 bg-gray-900 px-4 py-3">
           <div className="flex w-full items-center justify-between">
             <div className="flex gap-2">
-              <Button type="button" variant="ghost" size="sm" className="text-gray-400">
+              <button
+                type="button"
+                className="inline-flex items-center rounded-md px-3 py-1.5 text-sm text-gray-400 hover:bg-gray-800"
+              >
                 <Image className="mr-1 h-5 w-5" />
                 <span>Photo</span>
-              </Button>
-              <Button type="button" variant="ghost" size="sm" className="text-gray-400">
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center rounded-md px-3 py-1.5 text-sm text-gray-400 hover:bg-gray-800"
+              >
                 <Video className="mr-1 h-5 w-5" />
                 <span>Video</span>
-              </Button>
-              <Button type="button" variant="ghost" size="sm" className="text-gray-400">
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center rounded-md px-3 py-1.5 text-sm text-gray-400 hover:bg-gray-800"
+              >
                 <Camera className="mr-1 h-5 w-5" />
                 <span>Live</span>
-              </Button>
-              <Button type="button" variant="ghost" size="sm" className="text-gray-400">
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center rounded-md px-3 py-1.5 text-sm text-gray-400 hover:bg-gray-800"
+              >
                 <Smile className="mr-1 h-5 w-5" />
                 <span>Feeling</span>
-              </Button>
+              </button>
             </div>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={!postText.trim()}>
+            <button
+              type="submit"
+              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              disabled={!postText.trim()}
+            >
               Post
-            </Button>
+            </button>
           </div>
-        </CardFooter>
+        </div>
       </form>
-    </Card>
+    </div>
   )
 }
 

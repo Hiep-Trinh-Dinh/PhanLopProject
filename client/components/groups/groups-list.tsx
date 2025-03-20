@@ -1,137 +1,94 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { Search, Users } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-// Mock data for groups
 const mockGroups = [
   {
     id: 1,
     name: "React Developers",
-    cover: "/placeholder.svg",
+    avatar: "/placeholder-group.jpg",
     members: 1250,
+    privacy: "Public",
     isJoined: true,
-    isAdmin: false,
-    activity: "active",
-    lastActive: "2 hours ago",
   },
   {
     id: 2,
-    name: "UI/UX Design Community",
-    cover: "/placeholder.svg",
-    members: 3420,
-    isJoined: true,
-    isAdmin: true,
-    activity: "active",
-    lastActive: "1 day ago",
+    name: "Next.js Community",
+    avatar: "/placeholder-group.jpg",
+    members: 850,
+    privacy: "Public",
+    isJoined: false,
   },
   {
     id: 3,
-    name: "JavaScript Enthusiasts",
-    cover: "/placeholder.svg",
-    members: 5600,
-    isJoined: true,
-    isAdmin: false,
-    activity: "active",
-    lastActive: "Just now",
-  },
-  {
-    id: 4,
-    name: "Web Development Tips",
-    cover: "/placeholder.svg",
+    name: "TypeScript Enthusiasts",
+    avatar: "/placeholder-group.jpg",
     members: 2100,
+    privacy: "Private",
     isJoined: true,
-    isAdmin: false,
-    activity: "inactive",
-    lastActive: "3 days ago",
-  },
-  {
-    id: 5,
-    name: "Next.js Community",
-    cover: "/placeholder.svg",
-    members: 1800,
-    isJoined: true,
-    isAdmin: true,
-    activity: "active",
-    lastActive: "5 hours ago",
   },
 ]
 
 export default function GroupsList() {
-  const [groups, setGroups] = useState(mockGroups)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [activeTab, setActiveTab] = useState("all")
-
-  const filteredGroups = groups.filter((group) => {
-    const matchesSearch = group.name.toLowerCase().includes(searchQuery.toLowerCase())
-    if (activeTab === "all") return matchesSearch
-    if (activeTab === "admin") return matchesSearch && group.isAdmin
-    if (activeTab === "active") return matchesSearch && group.activity === "active"
-    return matchesSearch
-  })
-
   return (
-    <Card className="border-gray-800 bg-gray-900">
-      <CardHeader className="border-b border-gray-800 pb-3">
-        <CardTitle>Your Groups</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4">
+    <div className="rounded-lg border border-gray-800 bg-gray-900">
+      <div className="border-b border-gray-800 p-4">
+        <h2 className="text-lg font-semibold">Your Groups</h2>
+      </div>
+
+      <div className="p-4">
         <div className="mb-4 flex items-center rounded-md border border-gray-800 bg-gray-800 px-3 py-2">
           <Search className="mr-2 h-4 w-4 text-gray-400" />
-          <Input
+          <input
+            type="text"
             placeholder="Search groups"
-            className="border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full border-0 bg-transparent p-0 text-white placeholder-gray-400 focus:outline-none"
           />
         </div>
 
-        <Tabs defaultValue="all" className="mb-4" onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 bg-gray-800">
-            <TabsTrigger value="all">All Groups</TabsTrigger>
-            <TabsTrigger value="admin">Your Admin</TabsTrigger>
-            <TabsTrigger value="active">Recently Active</TabsTrigger>
-          </TabsList>
-        </Tabs>
-
         <div className="space-y-4">
-          {filteredGroups.length === 0 ? (
-            <p className="text-center text-gray-400">No groups found.</p>
-          ) : (
-            filteredGroups.map((group) => (
+          {mockGroups.map((group) => (
+            <div
+              key={group.id}
+              className="flex items-center justify-between rounded-lg border border-gray-800 bg-gray-800 p-3"
+            >
               <Link
-                key={group.id}
                 href={`/groups/${group.id}`}
-                className="block rounded-lg border border-gray-800 bg-gray-800 transition-colors hover:bg-gray-700"
+                className="flex flex-1 items-center space-x-3"
               >
-                <div className="relative h-32 w-full overflow-hidden rounded-t-lg">
-                  <Image src={group.cover || "/placeholder.svg"} alt={group.name} fill className="object-cover" />
-                  {group.isAdmin && (
-                    <div className="absolute right-2 top-2 rounded-full bg-blue-600 px-2 py-1 text-xs font-medium">
-                      Admin
-                    </div>
-                  )}
+                <div className="relative h-12 w-12 overflow-hidden rounded-lg">
+                  <img
+                    src={group.avatar}
+                    alt={group.name}
+                    className="h-full w-full object-cover"
+                  />
                 </div>
-                <div className="p-4">
+                <div>
                   <h3 className="font-semibold text-white">{group.name}</h3>
-                  <div className="mt-1 flex items-center text-sm text-gray-400">
-                    <Users className="mr-1 h-4 w-4" />
+                  <div className="flex items-center space-x-2 text-xs text-gray-400">
+                    <Users className="h-3 w-3" />
                     <span>{group.members.toLocaleString()} members</span>
-                    <span className="mx-2">•</span>
-                    <span>{group.lastActive}</span>
+                    <span>•</span>
+                    <span>{group.privacy}</span>
                   </div>
                 </div>
               </Link>
-            ))
-          )}
+
+              <button
+                className={`ml-4 rounded-md px-3 py-1 text-sm font-medium ${
+                  group.isJoined
+                    ? "border border-gray-700 hover:bg-gray-700"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
+                }`}
+              >
+                {group.isJoined ? "Joined" : "Join"}
+              </button>
+            </div>
+          ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 

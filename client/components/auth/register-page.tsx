@@ -1,15 +1,10 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -17,7 +12,6 @@ export default function RegisterPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // In a real app, you would handle registration here
     router.push("/home")
   }
 
@@ -29,60 +23,63 @@ export default function RegisterPage() {
           <p className="mt-2 text-gray-400">Create a new account</p>
         </div>
 
-        <Card className="border-gray-800 bg-gray-900">
-          <CardHeader>
-            <CardTitle className="text-xl text-white">Sign Up</CardTitle>
-            <CardDescription>Fill in your details to create an account</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="rounded-lg border border-gray-800 bg-gray-900">
+          <div className="p-6">
+            <h2 className="text-xl text-white">Sign Up</h2>
+            <p className="text-sm text-gray-400">Fill in your details to create an account</p>
+          </div>
+
+          <div className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label htmlFor="firstName" className="text-sm font-medium text-gray-200">
                     First Name
                   </label>
-                  <Input
+                  <input
                     id="firstName"
                     placeholder="First name"
                     required
-                    className="border-gray-700 bg-gray-800 text-white"
+                    className="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="lastName" className="text-sm font-medium text-gray-200">
                     Last Name
                   </label>
-                  <Input
+                  <input
                     id="lastName"
                     placeholder="Last name"
                     required
-                    className="border-gray-700 bg-gray-800 text-white"
+                    className="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
+
               <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium text-gray-200">
                   Email
                 </label>
-                <Input
+                <input
                   id="email"
                   type="email"
                   placeholder="Enter your email"
                   required
-                  className="border-gray-700 bg-gray-800 text-white"
+                  className="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+
               <div className="space-y-2">
                 <label htmlFor="password" className="text-sm font-medium text-gray-200">
                   Password
                 </label>
                 <div className="relative">
-                  <Input
+                  <input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a password"
                     required
-                    className="border-gray-700 bg-gray-800 pr-10 text-white"
+                    className="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button
                     type="button"
@@ -93,61 +90,59 @@ export default function RegisterPage() {
                   </button>
                 </div>
               </div>
+
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label htmlFor="day" className="text-sm font-medium text-gray-200">
                     Day
                   </label>
-                  <Select>
-                    <SelectTrigger className="border-gray-700 bg-gray-800 text-white">
-                      <SelectValue placeholder="Day" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 31 }, (_, i) => (
-                        <SelectItem key={i + 1} value={(i + 1).toString()}>
-                          {i + 1}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <select 
+                    className="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Day</option>
+                    {Array.from({ length: 31 }, (_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        {i + 1}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+
                 <div className="space-y-2">
                   <label htmlFor="month" className="text-sm font-medium text-gray-200">
                     Month
                   </label>
-                  <Select>
-                    <SelectTrigger className="border-gray-700 bg-gray-800 text-white">
-                      <SelectValue placeholder="Month" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map(
-                        (month, i) => (
-                          <SelectItem key={i} value={(i + 1).toString()}>
-                            {month}
-                          </SelectItem>
-                        ),
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <select 
+                    className="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Month</option>
+                    {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map(
+                      (month, i) => (
+                        <option key={i} value={i + 1}>
+                          {month}
+                        </option>
+                      )
+                    )}
+                  </select>
                 </div>
+
                 <div className="space-y-2">
                   <label htmlFor="year" className="text-sm font-medium text-gray-200">
                     Year
                   </label>
-                  <Select>
-                    <SelectTrigger className="border-gray-700 bg-gray-800 text-white">
-                      <SelectValue placeholder="Year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 100 }, (_, i) => (
-                        <SelectItem key={i} value={(new Date().getFullYear() - i).toString()}>
-                          {new Date().getFullYear() - i}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <select 
+                    className="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Year</option>
+                    {Array.from({ length: 100 }, (_, i) => (
+                      <option key={i} value={new Date().getFullYear() - i}>
+                        {new Date().getFullYear() - i}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
+
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-200">Gender</label>
                 <div className="grid grid-cols-3 gap-4">
@@ -171,6 +166,7 @@ export default function RegisterPage() {
                   </div>
                 </div>
               </div>
+
               <div className="text-xs text-gray-400">
                 By clicking Sign Up, you agree to our{" "}
                 <Link href="/terms" className="text-blue-400 hover:underline">
@@ -186,20 +182,25 @@ export default function RegisterPage() {
                 </Link>
                 .
               </div>
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
+
+              <button 
+                type="submit" 
+                className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
                 Sign Up
-              </Button>
+              </button>
             </form>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4 border-t border-gray-800 bg-gray-900">
+          </div>
+
+          <div className="border-t border-gray-800 bg-gray-900 p-6">
             <div className="text-center text-sm text-gray-400">
               Already have an account?{" "}
               <Link href="/" className="text-blue-400 hover:underline">
                 Log In
               </Link>
             </div>
-          </CardFooter>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   )

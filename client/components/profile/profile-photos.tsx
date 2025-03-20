@@ -1,163 +1,121 @@
 "use client"
 
+import Link from "next/link"
 import { useState } from "react"
-import Image from "next/image"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import { MoreHorizontal } from "lucide-react"
+
+interface Photo {
+  id: number
+  url: string
+  caption?: string
+  timestamp: string
+}
 
 interface ProfilePhotosProps {
   userId: number
 }
 
-// Mock data for photos
-const mockPhotos = Array.from({ length: 12 }, (_, i) => ({
-  id: i + 1,
-  url: "/placeholder.svg",
-  title: `Photo ${i + 1}`,
-  uploadedDate: "2 days ago",
-  album: i % 3 === 0 ? "Profile Pictures" : i % 3 === 1 ? "Timeline Photos" : "Mobile Uploads",
-}))
-
 export default function ProfilePhotos({ userId }: ProfilePhotosProps) {
-  const [photos] = useState(mockPhotos)
-  const [selectedPhoto, setSelectedPhoto] = useState<(typeof mockPhotos)[0] | null>(null)
-  const [activeTab, setActiveTab] = useState("all")
+  const [showDropdown, setShowDropdown] = useState<number | null>(null)
 
-  const filteredPhotos = photos.filter((photo) => {
-    if (activeTab === "all") return true
-    return photo.album.toLowerCase() === activeTab.toLowerCase()
-  })
+  // In a real app, you would fetch this data from an API
+  const photos: Photo[] = [
+    {
+      id: 1,
+      url: "/placeholder-image.jpg",
+      caption: "Beautiful sunset at the beach",
+      timestamp: "2 days ago",
+    },
+    {
+      id: 2,
+      url: "/placeholder-image.jpg",
+      caption: "Weekend hiking adventure",
+      timestamp: "1 week ago",
+    },
+    {
+      id: 3,
+      url: "/placeholder-image.jpg",
+      caption: "City lights at night",
+      timestamp: "2 weeks ago",
+    },
+    {
+      id: 4,
+      url: "/placeholder-image.jpg",
+      caption: "Morning coffee vibes",
+      timestamp: "3 weeks ago",
+    },
+    {
+      id: 5,
+      url: "/placeholder-image.jpg",
+      timestamp: "1 month ago",
+    },
+    {
+      id: 6,
+      url: "/placeholder-image.jpg",
+      timestamp: "1 month ago",
+    },
+  ]
 
   return (
-    <Card className="border-gray-800 bg-gray-900">
-      <CardHeader className="border-b border-gray-800 pb-3">
-        <CardTitle>Photos ({photos.length})</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4">
-        <Tabs defaultValue="all" className="mb-4" onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 bg-gray-800">
-            <TabsTrigger value="all">All Photos</TabsTrigger>
-            <TabsTrigger value="profile pictures">Profile Pictures</TabsTrigger>
-            <TabsTrigger value="timeline photos">Timeline Photos</TabsTrigger>
-          </TabsList>
+    <div className="rounded-lg border border-gray-800 bg-gray-900">
+      <div className="flex items-center justify-between border-b border-gray-800 p-4">
+        <div>
+          <h2 className="text-lg font-semibold text-white">Photos</h2>
+          <p className="text-sm text-gray-400">{photos.length} photos</p>
+        </div>
+        <Link
+          href={`/profile/${userId}/photos`}
+          className="rounded-md px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
+        >
+          See all photos
+        </Link>
+      </div>
 
-          <TabsContent value="all" className="mt-4">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-              {filteredPhotos.map((photo) => (
-                <Dialog key={photo.id}>
-                  <DialogTrigger asChild>
-                    <div
-                      className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg border border-gray-800 bg-gray-800"
-                      onClick={() => setSelectedPhoto(photo)}
-                    >
-                      <Image
-                        src={photo.url || "/placeholder.svg"}
-                        alt={photo.title}
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
-                      <div className="absolute bottom-0 left-0 p-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                        <p className="text-xs font-medium text-white">{photo.album}</p>
-                        <p className="text-xs text-gray-300">{photo.uploadedDate}</p>
-                      </div>
-                    </div>
-                  </DialogTrigger>
-                  <DialogContent className="border-gray-800 bg-gray-900 p-0 text-white sm:max-w-[800px]">
-                    <div className="relative aspect-square w-full sm:aspect-video">
-                      <Image src={photo.url || "/placeholder.svg"} alt={photo.title} fill className="object-contain" />
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-semibold">{photo.title}</h3>
-                      <p className="text-sm text-gray-400">
-                        {photo.album} • {photo.uploadedDate}
-                      </p>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              ))}
+      <div className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3">
+        {photos.map((photo) => (
+          <div key={photo.id} className="group relative">
+            <div className="relative aspect-square overflow-hidden rounded-lg">
+              <img src={photo.url} alt={photo.caption || "Photo"} className="h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 transition-opacity group-hover:opacity-100" />
             </div>
-          </TabsContent>
-
-          <TabsContent value="profile pictures" className="mt-4">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-              {filteredPhotos.map((photo) => (
-                <Dialog key={photo.id}>
-                  <DialogTrigger asChild>
-                    <div
-                      className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg border border-gray-800 bg-gray-800"
-                      onClick={() => setSelectedPhoto(photo)}
-                    >
-                      <Image
-                        src={photo.url || "/placeholder.svg"}
-                        alt={photo.title}
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
-                      <div className="absolute bottom-0 left-0 p-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                        <p className="text-xs font-medium text-white">{photo.album}</p>
-                        <p className="text-xs text-gray-300">{photo.uploadedDate}</p>
-                      </div>
-                    </div>
-                  </DialogTrigger>
-                  <DialogContent className="border-gray-800 bg-gray-900 p-0 text-white sm:max-w-[800px]">
-                    <div className="relative aspect-square w-full sm:aspect-video">
-                      <Image src={photo.url || "/placeholder.svg"} alt={photo.title} fill className="object-contain" />
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-semibold">{photo.title}</h3>
-                      <p className="text-sm text-gray-400">
-                        {photo.album} • {photo.uploadedDate}
-                      </p>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="timeline photos" className="mt-4">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-              {filteredPhotos.map((photo) => (
-                <Dialog key={photo.id}>
-                  <DialogTrigger asChild>
-                    <div
-                      className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg border border-gray-800 bg-gray-800"
-                      onClick={() => setSelectedPhoto(photo)}
-                    >
-                      <Image
-                        src={photo.url || "/placeholder.svg"}
-                        alt={photo.title}
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
-                      <div className="absolute bottom-0 left-0 p-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                        <p className="text-xs font-medium text-white">{photo.album}</p>
-                        <p className="text-xs text-gray-300">{photo.uploadedDate}</p>
-                      </div>
-                    </div>
-                  </DialogTrigger>
-                  <DialogContent className="border-gray-800 bg-gray-900 p-0 text-white sm:max-w-[800px]">
-                    <div className="relative aspect-square w-full sm:aspect-video">
-                      <Image src={photo.url || "/placeholder.svg"} alt={photo.title} fill className="object-contain" />
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-semibold">{photo.title}</h3>
-                      <p className="text-sm text-gray-400">
-                        {photo.album} • {photo.uploadedDate}
-                      </p>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+            <button
+              onClick={() => setShowDropdown(showDropdown === photo.id ? null : photo.id)}
+              className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-900/50 opacity-0 hover:bg-gray-800 group-hover:opacity-100"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+            {showDropdown === photo.id && (
+              <div className="absolute right-0 top-12 z-50 w-48 rounded-md border border-gray-800 bg-gray-900 py-1 shadow-lg">
+                <button
+                  className="w-full px-4 py-2 text-left text-sm text-white hover:bg-gray-800"
+                  onClick={() => setShowDropdown(null)}
+                >
+                  View Photo
+                </button>
+                <button
+                  className="w-full px-4 py-2 text-left text-sm text-white hover:bg-gray-800"
+                  onClick={() => setShowDropdown(null)}
+                >
+                  Download
+                </button>
+                <button
+                  className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-gray-800"
+                  onClick={() => setShowDropdown(null)}
+                >
+                  Report Photo
+                </button>
+              </div>
+            )}
+            {photo.caption && (
+              <div className="absolute inset-x-0 bottom-0 p-3 opacity-0 transition-opacity group-hover:opacity-100">
+                <p className="text-sm text-white">{photo.caption}</p>
+                <p className="mt-1 text-xs text-gray-300">{photo.timestamp}</p>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 

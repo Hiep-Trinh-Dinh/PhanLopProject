@@ -1,7 +1,6 @@
 "use client"
 
 import { Briefcase, GraduationCap, Heart, Home, MapPin } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface ProfileAboutProps {
   userId: number
@@ -51,11 +50,11 @@ export default function ProfileAbout({ userId }: ProfileAboutProps) {
 
   return (
     <div className="space-y-6">
-      <Card className="border-gray-800 bg-gray-900">
-        <CardHeader className="border-b border-gray-800 pb-3">
-          <CardTitle>Overview</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
+      <div className="rounded-lg border border-gray-800 bg-gray-900">
+        <div className="border-b border-gray-800 p-4">
+          <h2 className="text-lg font-semibold text-white">Overview</h2>
+        </div>
+        <div className="p-4">
           <div className="space-y-4">
             <div className="space-y-2">
               <h3 className="text-sm font-medium text-gray-400">Work</h3>
@@ -117,14 +116,14 @@ export default function ProfileAbout({ userId }: ProfileAboutProps) {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="border-gray-800 bg-gray-900">
-        <CardHeader className="border-b border-gray-800 pb-3">
-          <CardTitle>Contact Information</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
+      <div className="rounded-lg border border-gray-800 bg-gray-900">
+        <div className="border-b border-gray-800 p-4">
+          <h2 className="text-lg font-semibold text-white">Contact Information</h2>
+        </div>
+        <div className="p-4">
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-gray-400">Email</span>
@@ -146,8 +145,8 @@ export default function ProfileAbout({ userId }: ProfileAboutProps) {
               </a>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

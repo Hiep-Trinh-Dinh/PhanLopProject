@@ -4,10 +4,7 @@ import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Users } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-// Mock data for group suggestions
 const mockGroupSuggestions = [
   {
     id: 101,
@@ -41,11 +38,11 @@ export default function GroupSuggestions() {
   }
 
   return (
-    <Card className="border-gray-800 bg-gray-900">
-      <CardHeader className="border-b border-gray-800 pb-3">
-        <CardTitle>Suggested Groups</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4">
+    <div className="rounded-lg border border-gray-800 bg-gray-900">
+      <div className="border-b border-gray-800 p-4">
+        <h2 className="text-lg font-semibold">Suggested Groups</h2>
+      </div>
+      <div className="p-4">
         <div className="space-y-4">
           {groupSuggestions.map((group) => (
             <div key={group.id} className="overflow-hidden rounded-lg border border-gray-800 bg-gray-800">
@@ -62,22 +59,21 @@ export default function GroupSuggestions() {
                   <span className="mx-1">•</span>
                   <span>{group.mutualMembers} mutual members</span>
                 </div>
-                <Button
-                  className="mt-2 w-full bg-blue-600 hover:bg-blue-700"
-                  size="sm"
+                <button
+                  className="mt-2 w-full rounded-md bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700"
                   onClick={() => joinGroup(group.id)}
                 >
                   Join Group
-                </Button>
+                </button>
               </div>
             </div>
           ))}
-          <Button variant="ghost" className="w-full text-blue-400 hover:text-blue-300">
+          <button className="w-full rounded-md px-4 py-2 text-sm font-medium text-blue-400 hover:bg-gray-800 hover:text-blue-300">
             See More Suggestions
-          </Button>
+          </button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 

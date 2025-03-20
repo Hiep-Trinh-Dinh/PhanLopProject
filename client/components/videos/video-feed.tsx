@@ -2,8 +2,6 @@
 
 import { useState } from "react"
 import VideoCard from "./video-card"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Flame, Sparkles, Clock } from "lucide-react"
 
 // Mock data for videos
@@ -133,49 +131,73 @@ export default function VideoFeed() {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="trending" className="w-full" onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 bg-gray-800">
-          <TabsTrigger value="trending">
+      <div className="w-full">
+        <div className="grid grid-cols-3 rounded-lg bg-gray-800 p-1">
+          <button
+            onClick={() => setActiveTab("trending")}
+            className={`flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              activeTab === "trending"
+                ? "bg-gray-900 text-white"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
             <Flame className="mr-2 h-4 w-4" />
             Trending
-          </TabsTrigger>
-          <TabsTrigger value="following">
+          </button>
+          <button
+            onClick={() => setActiveTab("following")}
+            className={`flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              activeTab === "following"
+                ? "bg-gray-900 text-white"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
             <Sparkles className="mr-2 h-4 w-4" />
             Following
-          </TabsTrigger>
-          <TabsTrigger value="recent">
+          </button>
+          <button
+            onClick={() => setActiveTab("recent")}
+            className={`flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              activeTab === "recent"
+                ? "bg-gray-900 text-white"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
             <Clock className="mr-2 h-4 w-4" />
             Recent
-          </TabsTrigger>
-        </TabsList>
+          </button>
+        </div>
 
-        <TabsContent value="trending" className="mt-6 space-y-6">
-          {videos.map((video) => (
-            <VideoCard key={video.id} video={video} />
-          ))}
-        </TabsContent>
-
-        <TabsContent value="following" className="mt-6 space-y-6">
-          {videos
-            .filter((_, index) => index % 2 === 0) // Just for demo, show different videos
-            .map((video) => (
+        <div className="mt-6 space-y-6">
+          {activeTab === "trending" &&
+            videos.map((video) => (
               <VideoCard key={video.id} video={video} />
             ))}
-        </TabsContent>
 
-        <TabsContent value="recent" className="mt-6 space-y-6">
-          {videos
-            .filter((_, index) => index % 2 === 1) // Just for demo, show different videos
-            .map((video) => (
-              <VideoCard key={video.id} video={video} />
-            ))}
-        </TabsContent>
-      </Tabs>
+          {activeTab === "following" &&
+            videos
+              .filter((_, index) => index % 2 === 0)
+              .map((video) => (
+                <VideoCard key={video.id} video={video} />
+              ))}
+
+          {activeTab === "recent" &&
+            videos
+              .filter((_, index) => index % 2 === 1)
+              .map((video) => (
+                <VideoCard key={video.id} video={video} />
+              ))}
+        </div>
+      </div>
 
       <div className="flex justify-center pt-4">
-        <Button onClick={loadMoreVideos} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
+        <button
+          onClick={loadMoreVideos}
+          disabled={isLoading}
+          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        >
           {isLoading ? "Loading..." : "Load More Videos"}
-        </Button>
+        </button>
       </div>
     </div>
   )
