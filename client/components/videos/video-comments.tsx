@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Heart, MoreHorizontal } from "lucide-react"
 
@@ -24,6 +24,7 @@ interface VideoCommentsProps {
 }
 
 export default function VideoComments({ videoId }: VideoCommentsProps) {
+  const [mounted, setMounted] = useState(false)
   const [comments, setComments] = useState<Comment[]>([
     {
       id: 1,
@@ -72,6 +73,14 @@ export default function VideoComments({ videoId }: VideoCommentsProps) {
   const [showDropdown, setShowDropdown] = useState<number | null>(null)
   const [replyingTo, setReplyingTo] = useState<number | null>(null)
   const [replyText, setReplyText] = useState("")
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return null
+  }
 
   const handleLikeComment = (commentId: number) => {
     setComments(

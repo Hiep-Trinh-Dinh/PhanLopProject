@@ -1,28 +1,14 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { Users } from "lucide-react"
+import { usePathname } from "next/navigation"; // Import usePathname
+import Link from "next/link";
+import { Users } from "lucide-react";
 
 const onlineFriends = [
-  {
-    id: 1,
-    name: "Alex Johnson",
-    avatar: "/placeholder-user.jpg",
-    isOnline: true,
-  },
-  {
-    id: 2,
-    name: "Sarah Wilson",
-    avatar: "/placeholder-user.jpg",
-    isOnline: true,
-  },
-  {
-    id: 3,
-    name: "Michael Brown",
-    avatar: "/placeholder-user.jpg",
-    isOnline: true,
-  },
-]
+  { id: 1, name: "Alex Johnson", avatar: "/placeholder-user.jpg" },
+  { id: 2, name: "Sarah Wilson", avatar: "/placeholder-user.jpg" },
+  { id: 3, name: "Michael Brown", avatar: "/placeholder-user.jpg" },
+];
 
 const suggestedFriends = [
   {
@@ -37,14 +23,22 @@ const suggestedFriends = [
     avatar: "/placeholder-user.jpg",
     mutualFriends: 3,
   },
-]
+];
 
 export default function RightSidebar() {
-  return (
-    <aside className="hidden w-80 border-l border-gray-800 bg-gray-900 p-4 lg:block">
+  const pathname = usePathname(); // Lấy đường dẫn hiện tại
+
+  // Nếu không phải trang Home ("/") thì không render sidebar
+  if (pathname !== "/home") return null;
+  else   
+    return (
+    <aside className="hidden lg:block fixed top-14 right-0 h-[calc(100vh-3.5rem)] w-60 bg-gray-900 border-l border-gray-800 p-4 overflow-y-auto">
       <div className="space-y-6">
+        {/* Online Friends */}
         <div>
-          <h2 className="mb-4 text-lg font-semibold">Online Friends</h2>
+          <h2 className="mb-4 text-lg font-semibold text-white">
+            Online Friends
+          </h2>
           <div className="space-y-3">
             {onlineFriends.map((friend) => (
               <Link
@@ -66,11 +60,17 @@ export default function RightSidebar() {
           </div>
         </div>
 
+        {/* Suggested Friends */}
         <div>
-          <h2 className="mb-4 text-lg font-semibold">Suggested Friends</h2>
+          <h2 className="mb-4 text-lg font-semibold text-white">
+            Suggested Friends
+          </h2>
           <div className="space-y-3">
             {suggestedFriends.map((friend) => (
-              <div key={friend.id} className="flex items-center justify-between rounded-lg p-2 hover:bg-gray-800">
+              <div
+                key={friend.id}
+                className="flex flex-col items-start space-y-2 rounded-lg p-2 hover:bg-gray-800"
+              >
                 <div className="flex items-center space-x-3">
                   <div className="relative h-10 w-10">
                     <img
@@ -80,7 +80,10 @@ export default function RightSidebar() {
                     />
                   </div>
                   <div>
-                    <Link href={`/profile/${friend.id}`} className="font-medium text-white hover:underline">
+                    <Link
+                      href={`/profile/${friend.id}`}
+                      className="font-medium text-white hover:underline"
+                    >
                       {friend.name}
                     </Link>
                     <div className="flex items-center text-xs text-gray-400">
@@ -89,7 +92,7 @@ export default function RightSidebar() {
                     </div>
                   </div>
                 </div>
-                <button className="rounded-md border border-gray-700 px-3 py-1 text-sm hover:bg-gray-800">
+                <button className="w-full rounded-md border border-gray-700 px-3 py-1 text-sm hover:bg-gray-800">
                   Add Friend
                 </button>
               </div>
@@ -98,6 +101,5 @@ export default function RightSidebar() {
         </div>
       </div>
     </aside>
-  )
+  );
 }
-

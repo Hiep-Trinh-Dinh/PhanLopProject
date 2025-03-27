@@ -1,8 +1,15 @@
 "use client"
 
-import type React from "react"
 import { useState, useRef, useEffect } from "react"
-import { Info, MoreHorizontal, Phone, Send, Video } from "lucide-react"
+import Image from "next/image"
+import { Phone, Video, Info, MoreVertical, Send } from "lucide-react"
+
+interface Message {
+  id: number
+  content: string
+  timestamp: string
+  isSent: boolean
+}
 
 interface ConversationProps {
   user: {
@@ -11,66 +18,22 @@ interface ConversationProps {
     username: string
     avatar: string
     isOnline: boolean
-    lastActive: string
+    lastActive?: string
   }
 }
 
-const mockMessages = [
-  {
-    id: 1,
-    text: "Hey there! How's it going?",
-    time: "10:30 AM",
-    isFromMe: false,
-    status: "read",
-  },
-  {
-    id: 2,
-    text: "Hi! I'm doing well, thanks for asking. Just working on a new project.",
-    time: "10:32 AM",
-    isFromMe: true,
-    status: "read",
-  },
-  {
-    id: 3,
-    text: "That sounds interesting! What kind of project is it?",
-    time: "10:33 AM",
-    isFromMe: false,
-    status: "read",
-  },
-  {
-    id: 4,
-    text: "It's a social networking app built with React and Next.js. I'm trying to implement some new features.",
-    time: "10:35 AM",
-    isFromMe: true,
-    status: "read",
-  },
-  {
-    id: 5,
-    text: "That's awesome! I've been working with React a lot lately too. Let me know if you need any help with it.",
-    time: "10:36 AM",
-    isFromMe: false,
-    status: "read",
-  },
-  {
-    id: 6,
-    text: "Thanks, I appreciate that! I might take you up on that offer. How's your week been so far?",
-    time: "10:38 AM",
-    isFromMe: true,
-    status: "read",
-  },
-  {
-    id: 7,
-    text: "Pretty busy, but good! I've been working on a few client projects and trying to learn some new technologies in my spare time.",
-    time: "10:40 AM",
-    isFromMe: false,
-    status: "read",
-  },
-]
-
 export default function Conversation({ user }: ConversationProps) {
-  const [messages, setMessages] = useState(mockMessages)
+  const [mounted, setMounted] = useState(false)
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 1,
+      content: "Hey there!",
+      timestamp: "2:30 PM",
+      isSent: false,
+    },
+    // ... more messages
+  ])
   const [newMessage, setNewMessage] = useState("")
-  const [showDropdown, setShowDropdown] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -79,126 +42,114 @@ export default function Conversation({ user }: ConversationProps) {
 
   useEffect(() => {
     scrollToBottom()
+    setMounted(true)
   }, [messages])
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSendMessage = () => {
     if (!newMessage.trim()) return
 
-    const newMsg = {
+    const message: Message = {
       id: messages.length + 1,
-      text: newMessage,
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      isFromMe: true,
-      status: "sent" as const,
+      content: newMessage,
+      timestamp: new Date().toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }),
+      isSent: true,
     }
 
-    setMessages([...messages, newMsg])
+    setMessages([...messages, message])
     setNewMessage("")
+  }
+
+  if (!mounted) {
+    return null // or return loading skeleton
   }
 
   return (
     <div className="flex h-full flex-col">
+      {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-800 p-4">
-        <div className="flex items-center space-x-3">
-          <div className="relative h-10 w-10 overflow-hidden rounded-full">
-            <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">
-              {user.name.charAt(0)}
-            </div>
-          </div>
-          <div>
-            <h3 className="font-medium text-white">{user.name}</h3>
-            <p className="text-xs text-gray-400">{user.lastActive}</p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-1">
-          <button className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-800">
-            <Phone className="h-5 w-5" />
-            <span className="sr-only">Call</span>
-          </button>
-          <button className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-800">
-            <Video className="h-5 w-5" />
-            <span className="sr-only">Video call</span>
-          </button>
-          <button className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-800">
-            <Info className="h-5 w-5" />
-            <span className="sr-only">Info</span>
-          </button>
-          <div className="relative">
-            <button
-              onClick={() => setShowDropdown(!showDropdown)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-800"
-            >
-              <MoreHorizontal className="h-5 w-5" />
-              <span className="sr-only">More options</span>
-            </button>
-            {showDropdown && (
-              <div className="absolute right-0 z-50 mt-2 w-56 rounded-md border border-gray-800 bg-gray-900 py-1 shadow-lg">
-                <button
-                  className="flex w-full items-center px-4 py-2 text-sm text-white hover:bg-gray-800"
-                  onClick={() => setShowDropdown(false)}
-                >
-                  Mute conversation
-                </button>
-                <button
-                  className="flex w-full items-center px-4 py-2 text-sm text-white hover:bg-gray-800"
-                  onClick={() => setShowDropdown(false)}
-                >
-                  Search in conversation
-                </button>
-                <div className="h-px bg-gray-800" />
-                <button
-                  className="flex w-full items-center px-4 py-2 text-sm text-red-400 hover:bg-gray-800"
-                  onClick={() => setShowDropdown(false)}
-                >
-                  Block user
-                </button>
-              </div>
+        <div className="flex items-center gap-3">
+          <div className="relative h-10 w-10">
+            <Image
+              src={user.avatar}
+              alt={user.name}
+              fill
+              className="rounded-full object-cover"
+            />
+            {user.isOnline && (
+              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-gray-900 bg-green-500" />
             )}
           </div>
+          <div>
+            <h2 className="font-medium text-white">{user.name}</h2>
+            <p className="text-sm text-gray-400">
+              {user.isOnline ? "Online" : `Last seen ${user.lastActive}`}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <button className="rounded-full p-2 hover:bg-gray-800">
+            <Phone className="h-5 w-5" />
+          </button>
+          <button className="rounded-full p-2 hover:bg-gray-800">
+            <Video className="h-5 w-5" />
+          </button>
+          <button className="rounded-full p-2 hover:bg-gray-800">
+            <Info className="h-5 w-5" />
+          </button>
+          <button className="rounded-full p-2 hover:bg-gray-800">
+            <MoreVertical className="h-5 w-5" />
+          </button>
         </div>
       </div>
 
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4">
-        <div className="space-y-4">
-          {messages.map((message) => (
-            <div key={message.id} className={`flex ${message.isFromMe ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[75%] rounded-lg px-4 py-2 ${
-                  message.isFromMe ? "bg-blue-600 text-white" : "bg-gray-800 text-white"
-                }`}
-              >
-                <p>{message.text}</p>
-                <div
-                  className={`mt-1 flex items-center text-xs ${message.isFromMe ? "text-blue-200" : "text-gray-400"}`}
-                >
-                  {message.time}
-                </div>
-              </div>
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`mb-4 flex ${
+              message.isSent ? "justify-end" : "justify-start"
+            }`}
+          >
+            <div
+              className={`rounded-lg px-4 py-2 ${
+                message.isSent
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-800 text-gray-100"
+              }`}
+            >
+              <p>{message.content}</p>
+              <p className="mt-1 text-right text-xs text-gray-300">
+                {message.timestamp}
+              </p>
             </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
       </div>
 
+      {/* Input */}
       <div className="border-t border-gray-800 p-4">
-        <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
+        <div className="flex items-center gap-2">
           <input
             type="text"
-            placeholder="Type a message..."
-            className="flex-1 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white placeholder-gray-400 focus:border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-600"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+            placeholder="Type a message..."
+            className="flex-1 rounded-full bg-gray-800 px-4 py-2 text-white placeholder-gray-400 focus:outline-none"
           />
           <button
-            type="submit"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-blue-600 hover:bg-blue-700"
+            onClick={handleSendMessage}
+            className="rounded-full bg-blue-600 p-2 hover:bg-blue-700"
           >
-            <Send className="h-4 w-4" />
-            <span className="sr-only">Send</span>
+            <Send className="h-5 w-5" />
           </button>
-        </form>
+        </div>
       </div>
     </div>
   )

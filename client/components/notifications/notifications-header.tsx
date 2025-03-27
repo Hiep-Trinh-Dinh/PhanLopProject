@@ -1,28 +1,147 @@
-"use client"
+"use client";
+import { useState, useEffect } from "react";
+import NotificationsList from "./notifications-list";
+import { Bell, Settings } from "lucide-react";
+import Link from "next/link";
 
-interface NotificationsHeaderProps {
-  unreadCount: number
-  onMarkAllAsRead: () => void
+interface User {
+  id: number;
+  name: string;
+  username: string;
+  avatar: string;
 }
 
-export default function NotificationsHeader({ unreadCount, onMarkAllAsRead }: NotificationsHeaderProps) {
+interface Notification {
+  id: number;
+  type:
+    | "like"
+    | "comment"
+    | "friend_request"
+    | "friend_accepted"
+    | "group_invite"
+    | "mention";
+  content: string;
+  time: string;
+  isRead: boolean;
+  user: User;
+  link?: string;
+  actionLink?: string;
+  actionText?: string;
+}
+
+const mockNotifications: Notification[] = [
+  {
+    id: 1,
+    type: "like",
+    content: "liked your post",
+    time: "2 minutes ago",
+    isRead: false,
+    user: {
+      id: 1,
+      name: "John Doe",
+      username: "johndoe",
+      avatar: "/placeholder-user.jpg",
+    },
+    link: "/post/123",
+  },
+  {
+    id: 2,
+    type: "friend_request",
+    content: "sent you a friend request",
+    time: "1 hour ago",
+    isRead: false,
+    user: {
+      id: 2,
+      name: "Jane Smith",
+      username: "janesmith",
+      avatar: "/placeholder-user.jpg",
+    },
+  },
+  {
+    id: 3,
+    type: "comment",
+    content: "commented on your post",
+    time: "2 hours ago",
+    isRead: true,
+    user: {
+      id: 3,
+      name: "Mike Johnson",
+      username: "mikejohnson",
+      avatar: "/placeholder-user.jpg",
+    },
+    link: "/post/456",
+  },
+  {
+    id: 4,
+    type: "group_invite",
+    content: "invited you to join Web Developers Group",
+    time: "1 day ago",
+    isRead: true,
+    user: {
+      id: 4,
+      name: "Sarah Wilson",
+      username: "sarahwilson",
+      avatar: "/placeholder-user.jpg",
+    },
+    actionLink: "/groups/789",
+    actionText: "View group",
+  },
+];
+
+export default function NotificationsDropdown({ unreadCount: initialUnreadCount, onMarkAllAsRead }: NotificationsDropdownProps) {
+  const [mounted, setMounted] = useState(false);
+  const [notifications, setNotifications] = useState(mockNotifications);
+  const [isOpen, setIsOpen] = useState(false);
+  const [localUnreadCount, setLocalUnreadCount] = useState(initialUnreadCount);
+
+  useEffect(() => {
+    setMounted(true);
+    setLocalUnreadCount(notifications.filter((n) => !n.isRead).length);
+  }, [notifications]);
+
+  // Prevent hydration mismatch
+  if (!mounted) {
+    return null;
+  }
+
   return (
-    <div className="flex items-center justify-between border-b border-gray-800 p-4">
-      <div>
-        <h2 className="text-xl font-semibold text-white">Notifications</h2>
-        {unreadCount > 0 && (
-          <p className="mt-1 text-sm text-gray-400">You have {unreadCount} unread notifications</p>
+    <div className="relative">
+      {/* Biểu tượng thông báo */}
+      <button
+        className="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-700 transition"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <Bell className="w-6 h-6 text-white" />
+        {localUnreadCount > 0 && (
+          <span className="absolute top-0 right-0 h-5 w-5 bg-red-500 text-white text-xs flex items-center justify-center rounded-full">
+            {localUnreadCount}
+          </span>
         )}
-      </div>
-      {unreadCount > 0 && (
-        <button
-          onClick={onMarkAllAsRead}
-          className="rounded-md px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
-        >
-          Mark all as read
-        </button>
+      </button>
+
+      {/* Dropdown danh sách thông báo */}
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-96 bg-gray-900 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
+          <div className="p-4 border-b border-gray-700 flex justify-between">
+            <div className="text-3xl font-semibold text-white select-none pointer-events-none">
+              Thông báo
+            </div>
+            <Link
+              href="/settings"
+              className="text-blue-400 hover:underline text-base flex items-center"
+            >
+              <Settings className="text-blue-400 text-xl" />
+            </Link>
+          </div>
+          <div className="max-h-96 overflow-y-auto">
+            <NotificationsList
+              notifications={notifications}
+              setNotifications={setNotifications}
+              onUpdateUnread={setLocalUnreadCount}
+            />
+          </div>
+        </div>
       )}
     </div>
-  )
+  );
 }
-

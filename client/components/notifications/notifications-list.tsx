@@ -1,143 +1,120 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import NotificationItem from "./notification-item"
-import NotificationsHeader from "./notifications-header"
+import { useEffect } from "react";
+import NotificationItem from "./notification-item";
 
 interface User {
-  id: number
-  name: string
-  username: string
-  avatar: string
+  id: number;
+  name: string;
+  username: string;
+  avatar: string;
 }
 
 interface Notification {
-  id: number
-  type: "like" | "comment" | "friend_request" | "friend_accepted" | "group_invite" | "mention"
-  content: string
-  time: string
-  isRead: boolean
-  user: User
-  link?: string
-  actionLink?: string
-  actionText?: string
+  id: number;
+  type:
+    | "like"
+    | "comment"
+    | "friend_request"
+    | "friend_accepted"
+    | "group_invite"
+    | "mention";
+  content: string;
+  time: string;
+  isRead: boolean;
+  user: User;
+  link?: string;
+  actionLink?: string;
+  actionText?: string;
 }
 
-const mockNotifications: Notification[] = [
-  {
-    id: 1,
-    type: "like",
-    content: "liked your post",
-    time: "2 minutes ago",
-    isRead: false,
-    user: {
-      id: 1,
-      name: "John Doe",
-      username: "johndoe",
-      avatar: "/placeholder-user.jpg",
-    },
-    link: "/post/123",
-  },
-  {
-    id: 2,
-    type: "friend_request",
-    content: "sent you a friend request",
-    time: "1 hour ago",
-    isRead: false,
-    user: {
-      id: 2,
-      name: "Jane Smith",
-      username: "janesmith",
-      avatar: "/placeholder-user.jpg",
-    },
-  },
-  {
-    id: 3,
-    type: "comment",
-    content: "commented on your post",
-    time: "2 hours ago",
-    isRead: true,
-    user: {
-      id: 3,
-      name: "Mike Johnson",
-      username: "mikejohnson",
-      avatar: "/placeholder-user.jpg",
-    },
-    link: "/post/456",
-    actionLink: "/post/456",
-    actionText: "View comment",
-  },
-  {
-    id: 4,
-    type: "group_invite",
-    content: "invited you to join Web Developers Group",
-    time: "1 day ago",
-    isRead: true,
-    user: {
-      id: 4,
-      name: "Sarah Wilson",
-      username: "sarahwilson",
-      avatar: "/placeholder-user.jpg",
-    },
-    actionLink: "/groups/789",
-    actionText: "View group",
-  },
-]
+interface NotificationsListProps {
+  notifications: Notification[]; // ✅ Thêm danh sách thông báo
+  setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>; // ✅ Thêm setter
+  onUpdateUnread: (newUnreadCount: number) => void;
+}
 
-export default function NotificationsList() {
-  const [notifications, setNotifications] = useState(mockNotifications)
+export default function NotificationsList({
+  notifications,
+  setNotifications,
+  onUpdateUnread,
+}: NotificationsListProps) {
+  useEffect(() => {
+    const unreadCount = notifications.filter((n) => !n.isRead).length;
+    onUpdateUnread(unreadCount);
+  }, [notifications, onUpdateUnread]);
 
   const handleMarkAsRead = (id: number) => {
-    setNotifications(
-      notifications.map((notification) =>
-        notification.id === id ? { ...notification, isRead: true } : notification,
-      ),
-    )
-  }
+    setNotifications((prev) =>
+      prev.map((notification) =>
+        notification.id === id
+          ? { ...notification, isRead: true }
+          : notification
+      )
+    );
+  };
 
   const handleMarkAllAsRead = () => {
-    setNotifications(notifications.map((notification) => ({ ...notification, isRead: true })))
-  }
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  };
 
-  const handleAcceptFriendRequest = (id: number) => {
-    // In a real app, you would make an API call here
-    console.log("Accepting friend request:", id)
-    handleMarkAsRead(id)
-  }
-
-  const handleRejectFriendRequest = (id: number) => {
-    // In a real app, you would make an API call here
-    console.log("Rejecting friend request:", id)
-    setNotifications(notifications.filter((notification) => notification.id !== id))
-  }
-
-  const unreadCount = notifications.filter((notification) => !notification.isRead).length
+  const unreadNotifications = notifications.filter((n) => !n.isRead);
+  const readNotifications = notifications.filter((n) => n.isRead);
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="space-y-4">
-        <NotificationsHeader unreadCount={unreadCount} onMarkAllAsRead={handleMarkAllAsRead} />
-        <div className="space-y-4 p-4">
-          {notifications.map((notification) => (
+    <div className="bg-gray-900 p-4 rounded-lg shadow-lg max-h-96 overflow-y-auto">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-white select-none pointer-events-none">
+          Chưa đọc ({unreadNotifications.length})
+        </h3>
+        {unreadNotifications.length > 0 && (
+          <button
+            onClick={handleMarkAllAsRead}
+            className="text-blue-400 hover:underline text-sm "
+          >
+            Đánh dấu tất cả là đã đọc
+          </button>
+        )}
+      </div>
+
+      {unreadNotifications.length > 0 ? (
+        <div className="mb-4 space-y-4">
+          {unreadNotifications.map((notification) => (
             <NotificationItem
               key={notification.id}
               {...notification}
               onMarkAsRead={handleMarkAsRead}
-              onAcceptFriendRequest={
-                notification.type === "friend_request" ? handleAcceptFriendRequest : undefined
-              }
-              onRejectFriendRequest={
-                notification.type === "friend_request" ? handleRejectFriendRequest : undefined
-              }
+              unreadCount={unreadNotifications.length}
+              onMarkAllAsRead={handleMarkAllAsRead}
             />
           ))}
-          {notifications.length === 0 && (
-            <div className="rounded-lg border border-gray-800 bg-gray-900 p-4 text-center">
-              <p className="text-gray-400">No notifications</p>
-            </div>
-          )}
         </div>
-      </div>
+      ) : (
+        <div className="flex flex-col items-center text-gray-400 text-sm py-6 animate-fade-in">
+          <p className="m-1 select-none pointer-events-none">
+            Không có thông báo mới nào
+          </p>
+        </div>
+      )}
+
+      {readNotifications.length > 0 && (
+        <>
+          <h3 className="text-lg font-semibold text-white mb-2 select-none pointer-events-none">
+            Đã đọc
+          </h3>
+          <div className="space-y-4">
+            {readNotifications.map((notification) => (
+              <NotificationItem
+                key={notification.id}
+                {...notification}
+                onMarkAsRead={handleMarkAsRead}
+                unreadCount={unreadNotifications.length}
+                onMarkAllAsRead={handleMarkAllAsRead}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
-  )
+  );
 }

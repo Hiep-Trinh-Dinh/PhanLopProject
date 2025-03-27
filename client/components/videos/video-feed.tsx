@@ -131,7 +131,7 @@ export default function VideoFeed() {
 
   return (
     <div className="space-y-6">
-      <div className="w-full">
+      <div className="w-full mx-auto max-w-3xl">
         <div className="grid grid-cols-3 rounded-lg bg-gray-800 p-1">
           <button
             onClick={() => setActiveTab("trending")}
