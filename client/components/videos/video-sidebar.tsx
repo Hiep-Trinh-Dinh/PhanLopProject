@@ -43,9 +43,9 @@ const mockCreators = [
 
 // Mock data for trending topics
 const mockTrendingTopics = [
-  { id: 1, name: "travel", count: 12500 },
-  { id: 2, name: "cooking", count: 9800 },
-  { id: 3, name: "fitness", count: 8700 },
+  { id: 1, name: "travel",     count: 12500 },
+  { id: 2, name: "cooking",    count: 9800 },
+  { id: 3, name: "fitness",    count: 8700 },
   { id: 4, name: "technology", count: 7600 },
   { id: 5, name: "music", count: 6500 },
   { id: 6, name: "art", count: 5400 },

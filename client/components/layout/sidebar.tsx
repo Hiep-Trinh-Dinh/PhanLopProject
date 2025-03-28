@@ -1,9 +1,48 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { Home, Users, UserPlus, Video, MessagesSquare } from "lucide-react";
+import {
+  Bookmark,
+  Calendar,
+  Film,
+  Flag,
+  GamepadIcon,
+  Heart,
+  Home,
+  Image,
+  LayoutGrid,
+  MessageCircle,
+  Settings,
+  Store,
+  Users,
+  Video,
+  MessagesSquare,
+  UserPlus,
+} from "lucide-react";
+
+const mainLinks = [
+  { href: "/home", icon: Home, label: "Home" },
+  { href: "/friends", icon: Users, label: "Friends" },
+  { href: "/messages", icon: MessageCircle, label: "Messages" },
+  { href: "/videos", icon: Video, label: "Videos" },
+  // { href: "/marketplace", icon: Store, label: "Marketplace" },
+];
+
+// const quickLinks = [
+//   { href: "/gaming", icon: GamepadIcon, label: "Gaming" },
+//   { href: "/gallery", icon: Image, label: "Gallery" },
+//   { href: "/events", icon: Calendar, label: "Events" },
+//   { href: "/favorites", icon: Heart, label: "Favorites" },
+// ]
+
+const exploreLinks = [
+  // { href: "/pages", icon: Flag, label: "Pages" },
+  { href: "/groups", icon: LayoutGrid, label: "Groups" },
+  // { href: "/watch", icon: Film, label: "Watch" },
+  // { href: "/saved", icon: Bookmark, label: "Saved" },
+];
 
 export default function Sidebar() {
   const pathname = usePathname();

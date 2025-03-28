@@ -1,31 +1,31 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import Image from "next/image"
-import { Search } from "lucide-react"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { Search } from "lucide-react";
 
 interface User {
-  id: number
-  username: string
-  name: string
-  avatar: string
-  isOnline: boolean
-  lastActive: string
+  id: number;
+  username: string;
+  name: string;
+  avatar: string;
+  isOnline: boolean;
+  lastActive: string;
 }
 
 interface ConversationProps {
-  onSelectUser: (user: User) => void
+  onSelectUser: (user: User) => void;
 }
 
 export default function ConversationsList({ onSelectUser }: ConversationProps) {
-  const router = useRouter()
-  const [mounted, setMounted] = useState(false)
-  const [search, setSearch] = useState("")
-  
+  const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  const [search, setSearch] = useState("");
+
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    setMounted(true);
+  }, []);
 
   // Mock data matching with page.tsx users
   const conversations = [
@@ -38,7 +38,7 @@ export default function ConversationsList({ onSelectUser }: ConversationProps) {
       timestamp: "2m ago",
       unreadCount: 2,
       isOnline: true,
-      lastActive: "Active now"
+      lastActive: "Active now",
     },
     {
       id: 2,
@@ -49,7 +49,7 @@ export default function ConversationsList({ onSelectUser }: ConversationProps) {
       timestamp: "30m ago",
       unreadCount: 0,
       isOnline: false,
-      lastActive: "Active 30m ago"
+      lastActive: "Active 30m ago",
     },
     {
       id: 3,
@@ -60,29 +60,29 @@ export default function ConversationsList({ onSelectUser }: ConversationProps) {
       timestamp: "1h ago",
       unreadCount: 1,
       isOnline: true,
-      lastActive: "Active now"
-    }
-  ]
+      lastActive: "Active now",
+    },
+  ];
 
-  const filteredConversations = conversations.filter(conversation =>
+  const filteredConversations = conversations.filter((conversation) =>
     conversation.name.toLowerCase().includes(search.toLowerCase())
-  )
+  );
 
-  const handleConversationClick = (conversation: typeof conversations[0]) => {
+  const handleConversationClick = (conversation: (typeof conversations)[0]) => {
     const user = {
       id: conversation.id,
       username: conversation.username,
       name: conversation.name,
       avatar: conversation.avatar,
       isOnline: conversation.isOnline,
-      lastActive: conversation.lastActive
-    }
-    onSelectUser(user)
-  }
+      lastActive: conversation.lastActive,
+    };
+    onSelectUser(user);
+  };
 
   // Return null or loading state until mounted
   if (!mounted) {
-    return null // or return loading skeleton
+    return null; // or return loading skeleton
   }
 
   return (
@@ -99,7 +99,7 @@ export default function ConversationsList({ onSelectUser }: ConversationProps) {
           />
         </div>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto">
         {filteredConversations.map((conversation) => (
           <button
@@ -118,13 +118,15 @@ export default function ConversationsList({ onSelectUser }: ConversationProps) {
                 <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-gray-900 bg-green-500" />
               )}
             </div>
-            
+
             <div className="flex-1 overflow-hidden">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium text-white">{conversation.name}</h3>
-                <p className="text-sm text-gray-400">{conversation.timestamp}</p>
+                <p className="text-sm text-gray-400">
+                  {conversation.timestamp}
+                </p>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <p className="truncate text-sm text-gray-400">
                   {conversation.lastMessage}
@@ -140,6 +142,5 @@ export default function ConversationsList({ onSelectUser }: ConversationProps) {
         ))}
       </div>
     </div>
-  )
+  );
 }
-

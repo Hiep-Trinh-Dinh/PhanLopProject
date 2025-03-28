@@ -64,7 +64,9 @@ export default function FriendsList() {
   return (
     <div className="rounded-lg border border-gray-800 bg-gray-900">
       <div className="border-b border-gray-800 p-4">
-        <h2 className="text-lg font-semibold">All Friends ({friends.length})</h2>
+        <h2 className="text-lg font-semibold select-none pointer-events-none">
+          All Friends ({friends.length})
+        </h2>
       </div>
       <div className="p-4">
         <div className="mb-4 flex items-center rounded-md border border-gray-800 bg-gray-800 px-3 py-2">
@@ -80,11 +82,14 @@ export default function FriendsList() {
 
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
           {filteredFriends.map((friend) => (
-            <div key={friend.id} className="flex flex-col rounded-lg border border-gray-800 bg-gray-800 p-4">
+            <div
+              key={friend.id}
+              className="flex flex-col rounded-lg border border-gray-800 bg-gray-800 p-4"
+            >
               <div className="flex items-center space-x-3">
                 <div className="relative h-12 w-12 overflow-hidden rounded-full">
-                  <img 
-                    src={friend.avatar} 
+                  <img
+                    src={friend.avatar}
                     alt={friend.name}
                     className="h-full w-full object-cover"
                   />
@@ -93,10 +98,15 @@ export default function FriendsList() {
                   </div>
                 </div>
                 <div>
-                  <Link href={`/profile/${friend.username}`} className="font-semibold text-white hover:underline">
+                  <Link
+                    href={`/profile/${friend.username}`}
+                    className="font-semibold text-white hover:underline"
+                  >
                     {friend.name}
                   </Link>
-                  <p className="text-xs text-gray-400">{friend.mutualFriends} mutual friends</p>
+                  <p className="text-xs text-gray-400 select-none pointer-events-none">
+                    {friend.mutualFriends} mutual friends
+                  </p>
                 </div>
               </div>
               <div className="mt-4 flex space-x-2">
@@ -120,6 +130,6 @@ export default function FriendsList() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 

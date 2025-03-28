@@ -1,29 +1,29 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
-import Image from "next/image"
-import { Phone, Video, Info, MoreVertical, Send } from "lucide-react"
+import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
+import { Phone, Video, Info, MoreVertical, Send } from "lucide-react";
 
 interface Message {
-  id: number
-  content: string
-  timestamp: string
-  isSent: boolean
+  id: number;
+  content: string;
+  timestamp: string;
+  isSent: boolean;
 }
 
 interface ConversationProps {
   user: {
-    id: number
-    name: string
-    username: string
-    avatar: string
-    isOnline: boolean
-    lastActive?: string
-  }
+    id: number;
+    name: string;
+    username: string;
+    avatar: string;
+    isOnline: boolean;
+    lastActive?: string;
+  };
 }
 
 export default function Conversation({ user }: ConversationProps) {
-  const [mounted, setMounted] = useState(false)
+  const [mounted, setMounted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -32,38 +32,38 @@ export default function Conversation({ user }: ConversationProps) {
       isSent: false,
     },
     // ... more messages
-  ])
-  const [newMessage, setNewMessage] = useState("")
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  ]);
+  const [newMessage, setNewMessage] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
-    scrollToBottom()
-    setMounted(true)
-  }, [messages])
+    scrollToBottom();
+    setMounted(true);
+  }, [messages]);
 
   const handleSendMessage = () => {
-    if (!newMessage.trim()) return
+    if (!newMessage.trim()) return;
 
     const message: Message = {
       id: messages.length + 1,
       content: newMessage,
-      timestamp: new Date().toLocaleTimeString([], { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      timestamp: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
       }),
       isSent: true,
-    }
+    };
 
-    setMessages([...messages, message])
-    setNewMessage("")
-  }
+    setMessages([...messages, message]);
+    setNewMessage("");
+  };
 
   if (!mounted) {
-    return null // or return loading skeleton
+    return null; // or return loading skeleton
   }
 
   return (
@@ -152,6 +152,5 @@ export default function Conversation({ user }: ConversationProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }
-

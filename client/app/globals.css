@@ -12,6 +12,17 @@ body {
   }
 }
 
+@layer utilities {
+  .hide-password-eye::-ms-reveal,
+  .hide-password-eye::-ms-clear {
+    display: none;
+  }
+
+  .hide-password-eye::-webkit-credentials-auto-fill-button {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}
 @layer base {
   :root {
     --background: 0 0% 100%;

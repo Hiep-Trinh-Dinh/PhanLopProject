@@ -54,8 +54,51 @@ export default function NotificationsList({
     );
   };
 
+  const handleAcceptRequest = (id: number) => {
+    setNotifications((prev) =>
+      prev.map((notification) =>
+        notification.id === id
+          ? { ...notification, isRead: true, type: "friend_accepted" }
+          : notification
+      )
+    );
+
+    // Gọi hành động ngay lập tức thay vì phải click lại sau khi nó chuyển sang "Đã đọc"
+    console.log(`Friend request ${id} accepted`);
+  };
+
+  const handleRejectRequest = (id: number) => {
+    setNotifications((prev) =>
+      prev.filter((notification) => notification.id !== id)
+    );
+    console.log(`Friend request ${id} rejected`);
+  };
+
   const handleMarkAllAsRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  };
+  interface NotificationsHeaderProps {
+    unreadCount: number;
+    onMarkAllAsRead: () => void;
+  }
+
+  const NotificationsHeader: React.FC<NotificationsHeaderProps> = ({
+    unreadCount,
+    onMarkAllAsRead,
+  }) => {
+    return (
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-white">
+          Chưa đọc ({unreadCount})
+        </h3>
+        <button
+          onClick={onMarkAllAsRead}
+          className="text-blue-400 hover:underline text-sm"
+        >
+          Mark all as read
+        </button>
+      </div>
+    );
   };
 
   const unreadNotifications = notifications.filter((n) => !n.isRead);
@@ -70,9 +113,9 @@ export default function NotificationsList({
         {unreadNotifications.length > 0 && (
           <button
             onClick={handleMarkAllAsRead}
-            className="text-blue-400 hover:underline text-sm "
+            className="text-blue-400 font-semibold hover:underline text-sm select-none"
           >
-            Đánh dấu tất cả là đã đọc
+            Mark all as read
           </button>
         )}
       </div>
@@ -83,16 +126,26 @@ export default function NotificationsList({
             <NotificationItem
               key={notification.id}
               {...notification}
-              onMarkAsRead={handleMarkAsRead}
               unreadCount={unreadNotifications.length}
-              onMarkAllAsRead={handleMarkAllAsRead}
+              onMarkAsRead={handleMarkAsRead}
+              onAcceptFriendRequest={() =>
+                console.log("Friend request accepted")
+              } // Cập nhật hàm thực tế nếu có
+              onRejectFriendRequest={() =>
+                console.log("Friend request rejected")
+              }
+              onMarkAllAsRead={() =>
+                setNotifications(
+                  notifications.map((n) => ({ ...n, isRead: true }))
+                )
+              }
             />
           ))}
         </div>
       ) : (
         <div className="flex flex-col items-center text-gray-400 text-sm py-6 animate-fade-in">
           <p className="m-1 select-none pointer-events-none">
-            Không có thông báo mới nào
+            No new notifications
           </p>
         </div>
       )}
@@ -100,16 +153,26 @@ export default function NotificationsList({
       {readNotifications.length > 0 && (
         <>
           <h3 className="text-lg font-semibold text-white mb-2 select-none pointer-events-none">
-            Đã đọc
+            Read
           </h3>
           <div className="space-y-4">
             {readNotifications.map((notification) => (
               <NotificationItem
                 key={notification.id}
                 {...notification}
-                onMarkAsRead={handleMarkAsRead}
                 unreadCount={unreadNotifications.length}
-                onMarkAllAsRead={handleMarkAllAsRead}
+                onMarkAsRead={handleMarkAsRead}
+                onAcceptFriendRequest={() =>
+                  handleAcceptRequest(notification.id)
+                }
+                onRejectFriendRequest={() =>
+                  handleRejectRequest(notification.id)
+                }
+                onMarkAllAsRead={() =>
+                  setNotifications(
+                    notifications.map((n) => ({ ...n, isRead: true }))
+                  )
+                }
               />
             ))}
           </div>

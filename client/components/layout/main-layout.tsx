@@ -19,7 +19,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
       <Navbar onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
-      
+
       <div className="flex pt-[60px]">
         {/* Desktop Sidebar */}
         <div className="hidden lg:block lg:w-64">
@@ -28,25 +28,33 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
         {/* Mobile Sidebar Overlay */}
         {isSidebarOpen && (
-          <div 
+          <div
             className="fixed inset-0 z-40 bg-black/60 lg:hidden"
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
 
         {/* Mobile Sidebar */}
-        <div className={`
+        <div
+          className={`
           fixed inset-y-0 left-0 z-50 w-64 transform bg-background transition-transform duration-200 ease-in-out lg:hidden
-          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}>
+          ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        `}
+        >
           <Sidebar />
         </div>
 
         {/* Main Content */}
-        <main className={`
+        <main
+          className={`
           flex-1 px-4 py-6
-          ${isHomePage ? 'lg:max-w-[calc(100%-600px)]' : 'lg:max-w-[calc(100%-256px)]'}
-        `}>
+          ${
+            isHomePage
+              ? "lg:max-w-[calc(100%-600px)]"
+              : "lg:max-w-[calc(100%-256px)]"
+          }
+        `}
+        >
           {children}
         </main>
 

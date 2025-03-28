@@ -68,72 +68,64 @@ export default function NotificationItem({
 
   return (
     <div
-     className={`p-4 rounded-lg cursor-pointer transition-all ${
-       isRead
-         ? "bg-gray-800 hover:bg-gray-700"
-         : "bg-blue-900 hover:bg-blue-800"
+      className={`p-4 rounded-lg cursor-pointer transition-all ${
+        isRead
+          ? "bg-gray-800 hover:bg-gray-700"
+          : "bg-blue-900 hover:bg-blue-800"
       }`}
       onClick={() => onMarkAsRead(id)}
     >
-     {/* Avatar + Icon + Nội dung */}
-     <div className="flex items-start space-x-4">
-       {/* Ảnh đại diện */}
-       <div className="relative">
-         <img
-           src={user.avatar}
-           alt={user.name}
-           className="h-10 w-10 rounded-full border border-gray-600"
-         />
-         <div className="absolute -bottom-1 -right-1 bg-gray-900 p-1 rounded-full">
-           {getNotificationIcon(type)}
-         </div>
-       </div>
+      {/* Avatar + Icon + Nội dung */}
+      <div className="flex items-start space-x-4">
+        {/* Ảnh đại diện */}
+        <div className="relative">
+          <img
+            src={user.avatar}
+            alt={user.name}
+            className="h-10 w-10 rounded-full border border-gray-600"
+          />
+          <div className="absolute -bottom-1 -right-1 bg-gray-900 p-1 rounded-full">
+            {getNotificationIcon(type)}
+          </div>
+        </div>
 
-       {/* Nội dung thông báo */}
-      <div className="flex-1">
-         <p className="text-white text-sm">
-           <Link
-             href={`/profile/${user.username}`}
-             className="font-semibold hover:underline"
-           >
-             {user.name}
-           </Link>{" "}
-           {content}
-        </p>
-        <p className="text-xs text-gray-400">{time}</p>
+        {/* Nội dung thông báo */}
+        <div className="flex-1">
+          <p className="text-white text-sm">
+            <Link
+              href={`/profile/${user.username}`}
+              className="font-semibold hover:underline"
+            >
+              {user.name}
+            </Link>{" "}
+            {content}
+          </p>
+          <p className="text-xs text-gray-400">{time}</p>
+        </div>
+
+        {/* Chấm xanh báo chưa đọc */}
+        {!isRead && (
+          <div className="h-3 w-3 bg-blue-500 rounded-full mt-2"></div>
+        )}
       </div>
 
-       {/* Chấm xanh báo chưa đọc */}
-       {!isRead && (
-         <div className="h-3 w-3 bg-blue-500 rounded-full mt-2"></div>
-       )}
-     </div>
-
-     {/* Nút hành động: Đưa xuống dưới */}
-     {type === "friend_request" &&
-       onAcceptFriendRequest &&
-       onRejectFriendRequest && (
-         <div className="mt-3 flex space-x-2">
-           <button
-             className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
-             onClick={(e) => {
-               e.stopPropagation();
-               onAcceptFriendRequest(id);
-             }}
-           >
-             Chấp nhận
-           </button>
-           <button
-             className="w-full px-3 py-2 text-sm font-medium text-white border border-gray-600 rounded hover:bg-gray-700"
-             onClick={(e) => {
-               e.stopPropagation();
-               onRejectFriendRequest(id);
-             }}
-           >
-             Từ chối
-           </button>
-         </div>
-       )}
+      {/* Nút hành động: Đưa xuống dưới */}
+      {type === "friend_request" && !isRead && (
+        <div className="mt-2 flex gap-2">
+            <button
+            onClick={() => onAcceptFriendRequest && onAcceptFriendRequest(id)}
+            className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600"
+            >
+            Accept
+            </button>
+            <button
+            onClick={() => onRejectFriendRequest && onRejectFriendRequest(id)}
+            className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
+            >
+            Reject
+            </button>
+        </div>
+      )}
     </div>
   );
 };

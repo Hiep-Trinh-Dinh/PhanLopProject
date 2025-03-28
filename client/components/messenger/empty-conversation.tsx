@@ -7,10 +7,11 @@ export default function EmptyConversation() {
         <MessageSquare className="h-8 w-8 text-gray-400" />
       </div>
       <h2 className="text-xl font-semibold">Your Messages</h2>
-      <p className="mt-2 max-w-md text-gray-400">
-        Send private messages to a friend or group. Select a conversation from the sidebar or start a new one.
+      <p className="mt-2 max-w-md text-gray-400 select-none pointer-events-none">
+        Send private messages to a friend or group. Select a conversation from
+        the sidebar or start a new one.
       </p>
     </div>
-  )
+  );
 }
 

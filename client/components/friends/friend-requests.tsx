@@ -36,19 +36,25 @@ export default function FriendRequests() {
     return (
       <div className="rounded-lg border border-gray-800 bg-gray-900">
         <div className="border-b border-gray-800 p-4">
-          <h2 className="text-lg font-semibold">Friend Requests</h2>
+          <h2 className="text-lg font-semibold select-none pointer-events-none">
+            Friend Requests
+          </h2>
         </div>
         <div className="p-4">
-          <p className="text-center text-gray-400">No friend requests at the moment.</p>
+          <p className="text-center text-gray-400 select-none pointer-events-none">
+            No friend requests at the moment.
+          </p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="rounded-lg border border-gray-800 bg-gray-900">
       <div className="border-b border-gray-800 p-4">
-        <h2 className="text-lg font-semibold">Friend Requests ({friendRequests.length})</h2>
+        <h2 className="text-lg font-semibold select-none pointer-events-none">
+          Friend Requests ({friendRequests.length})
+        </h2>
       </div>
       <div className="p-4">
         <div className="space-y-4">
@@ -59,8 +65,8 @@ export default function FriendRequests() {
             >
               <div className="flex items-center space-x-3">
                 <div className="relative h-10 w-10 overflow-hidden rounded-full">
-                  <img 
-                    src={request.avatar} 
+                  <img
+                    src={request.avatar}
                     alt={request.name}
                     className="h-full w-full object-cover"
                   />
@@ -69,10 +75,15 @@ export default function FriendRequests() {
                   </div>
                 </div>
                 <div>
-                  <Link href={`/profile/${request.username}`} className="font-semibold text-white hover:underline">
+                  <Link
+                    href={`/profile/${request.username}`}
+                    className="font-semibold text-white hover:underline"
+                  >
                     {request.name}
                   </Link>
-                  <p className="text-xs text-gray-400">{request.mutualFriends} mutual friends</p>
+                  <p className="text-xs text-gray-400 select-none pointer-events-none">
+                    {request.mutualFriends} mutual friends
+                  </p>
                 </div>
               </div>
               <div className="flex space-x-2">
@@ -94,6 +105,6 @@ export default function FriendRequests() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 

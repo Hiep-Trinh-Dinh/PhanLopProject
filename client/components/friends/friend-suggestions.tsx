@@ -38,7 +38,9 @@ export default function FriendSuggestions() {
   return (
     <div className="rounded-lg border border-gray-800 bg-gray-900">
       <div className="border-b border-gray-800 p-4">
-        <h2 className="text-lg font-semibold">People You May Know</h2>
+        <h2 className="text-lg font-semibold select-none pointer-events-none">
+          People You May Know
+        </h2>
       </div>
       <div className="p-4">
         <div className="space-y-4">
@@ -49,8 +51,8 @@ export default function FriendSuggestions() {
             >
               <div className="flex items-center space-x-3">
                 <div className="relative h-10 w-10 overflow-hidden rounded-full">
-                  <img 
-                    src={suggestion.avatar} 
+                  <img
+                    src={suggestion.avatar}
                     alt={suggestion.name}
                     className="h-full w-full object-cover"
                   />
@@ -59,10 +61,15 @@ export default function FriendSuggestions() {
                   </div>
                 </div>
                 <div>
-                  <Link href={`/profile/${suggestion.username}`} className="font-semibold text-white hover:underline">
+                  <Link
+                    href={`/profile/${suggestion.username}`}
+                    className="font-semibold text-white hover:underline"
+                  >
                     {suggestion.name}
                   </Link>
-                  <p className="text-xs text-gray-400">{suggestion.mutualFriends} mutual friends</p>
+                  <p className="text-xs text-gray-400 select-none pointer-events-none">
+                    {suggestion.mutualFriends} mutual friends
+                  </p>
                 </div>
               </div>
               <button
@@ -77,6 +84,6 @@ export default function FriendSuggestions() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 

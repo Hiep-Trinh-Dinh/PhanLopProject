@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import NotificationsList from "./notifications-list";
-import { Bell, Settings } from "lucide-react";
+import { BellRing, Settings, Bell } from "lucide-react";
 import Link from "next/link";
 
 interface User {
@@ -88,21 +88,19 @@ const mockNotifications: Notification[] = [
   },
 ];
 
-export default function NotificationsDropdown({ unreadCount: initialUnreadCount, onMarkAllAsRead }: NotificationsDropdownProps) {
-  const [mounted, setMounted] = useState(false);
+export default function NotificationsDropdown() {
   const [notifications, setNotifications] = useState(mockNotifications);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
-  const [localUnreadCount, setLocalUnreadCount] = useState(initialUnreadCount);
 
   useEffect(() => {
-    setMounted(true);
-    setLocalUnreadCount(notifications.filter((n) => !n.isRead).length);
-  }, [notifications]);
+    // Cập nhật số lượng chưa đọc khi component mount
+    setUnreadCount(notifications.filter((n) => !n.isRead).length);
+  }, []);
 
-  // Prevent hydration mismatch
-  if (!mounted) {
-    return null;
-  }
+  useEffect(() => {
+    setUnreadCount(notifications.filter((n) => !n.isRead).length);
+  }, [notifications]);
 
   return (
     <div className="relative">
@@ -111,24 +109,42 @@ export default function NotificationsDropdown({ unreadCount: initialUnreadCount,
         className="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-700 transition"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <Bell className="w-6 h-6 text-white" />
-        {localUnreadCount > 0 && (
+        {/* Hiệu ứng chuyển đổi giữa BellRing và Bell */}
+        <div className="relative w-6 h-6">
+          <BellRing
+            className={`absolute inset-0 w-6 h-6 text-white  transition-transform duration-500 fill-current delay-100 ${
+              unreadCount > 0
+                ? "rotate-0 opacity-100 scale-100 "
+                : "rotate-45 opacity-0 scale-50 "
+            }`}
+          />
+          <Bell
+            className={`absolute inset-0 w-6 h-6 text-white transition-transform duration-500 ${
+              unreadCount > 0
+                ? "rotate-45 opacity-0 scale-50"
+                : "rotate-0 opacity-100 scale-100"
+            }`}
+          />
+        </div>
+
+        {/* Số lượng thông báo chưa đọc */}
+        {unreadCount > 0 && (
           <span className="absolute top-0 right-0 h-5 w-5 bg-red-500 text-white text-xs flex items-center justify-center rounded-full">
-            {localUnreadCount}
+            {unreadCount}
           </span>
         )}
       </button>
 
       {/* Dropdown danh sách thông báo */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-96 bg-gray-900 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-96 bg-gray-900 rounded-lg shadow-lg border border-gray-700 overscroll-contain overflow-auto">
           <div className="p-4 border-b border-gray-700 flex justify-between">
             <div className="text-3xl font-semibold text-white select-none pointer-events-none">
-              Thông báo
+              Notifications
             </div>
             <Link
               href="/settings"
-              className="text-blue-400 hover:underline text-base flex items-center"
+              className="text-blue-400 hover:underline text-base flex justify-center w-10 h-10 items-center rounded-full hover:bg-gray-700"
             >
               <Settings className="text-blue-400 text-xl" />
             </Link>
@@ -137,7 +153,7 @@ export default function NotificationsDropdown({ unreadCount: initialUnreadCount,
             <NotificationsList
               notifications={notifications}
               setNotifications={setNotifications}
-              onUpdateUnread={setLocalUnreadCount}
+              onUpdateUnread={setUnreadCount}
             />
           </div>
         </div>
