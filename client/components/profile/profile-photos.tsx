@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { MoreHorizontal } from "lucide-react"
+import { Avatar } from "../../components/ui/avatar"
 
 interface Photo {
   id: number
@@ -75,7 +76,11 @@ export default function ProfilePhotos({ userId }: ProfilePhotosProps) {
         {photos.map((photo) => (
           <div key={photo.id} className="group relative">
             <div className="relative aspect-square overflow-hidden rounded-lg">
-              <img src={photo.url} alt={photo.caption || "Photo"} className="h-full w-full object-cover" />
+              <Avatar 
+                src={photo.url}
+                alt={photo.caption || "Photo"}
+                className="h-full w-full"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 transition-opacity group-hover:opacity-100" />
             </div>
             <button

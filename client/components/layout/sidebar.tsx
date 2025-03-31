@@ -68,11 +68,6 @@ export default function Sidebar() {
       label: "Friends",
     },
     {
-      href: "/friend-requests",
-      icon: UserPlus,
-      label: "Friend Requests",
-    },
-    {
       href: "/videos",
       icon: Video,
       label: "Videos",

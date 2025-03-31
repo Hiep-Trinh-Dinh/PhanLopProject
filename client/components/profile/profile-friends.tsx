@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { MoreHorizontal, Users } from "lucide-react"
 import { useState } from "react"
+import { Avatar } from "../../components/ui/avatar"
 
 interface Friend {
   id: number
@@ -85,7 +86,11 @@ export default function ProfileFriends({ userId }: ProfileFriendsProps) {
           <div key={friend.id} className="relative">
             <div className="group rounded-lg border border-gray-800 p-3 hover:bg-gray-800">
               <div className="relative mb-2 aspect-square overflow-hidden rounded-lg">
-                <img src={friend.avatar} alt={friend.name} className="h-full w-full object-cover" />
+                <Avatar 
+                  src={friend.avatar}
+                  alt={friend.name}
+                  className="h-full w-full"
+                />
               </div>
               <div>
                 <Link
