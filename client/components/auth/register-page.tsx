@@ -10,6 +10,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
@@ -109,6 +110,31 @@ export default function RegisterPage() {
                     } transition-all peer-focus:top-0 peer-focus:text-blue-500 peer-focus:text-sm select-none pointer-events-none`}
                   >
                     Last name
+                  </label>
+                </div>
+              </div>
+
+              {/* Username */}
+              <div className="space-y-2">
+                <div className="relative w-full">
+                  <input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    onFocus={(e) => e.target.removeAttribute("readonly")}
+                    required
+                    className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500"
+                  />
+                  <label
+                    htmlFor="username"
+                    className={`absolute left-2 ${
+                      username
+                        ? "top-0 text-blue-500 text-sm"
+                        : "top-5 text-gray-400 text-sm"
+                    } transition-all peer-focus:top-0 peer-focus:text-blue-500 peer-focus:text-sm select-none pointer-events-none`}
+                  >
+                    Username
                   </label>
                 </div>
               </div>

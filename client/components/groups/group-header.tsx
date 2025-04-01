@@ -5,21 +5,24 @@ import Link from "next/link"
 import { Bell, BellOff, MoreHorizontal, Share, UserPlus } from "lucide-react"
 
 interface GroupHeaderProps {
-  groupId: number
+  group: {
+    id: number
+    name: string
+    cover: string
+    avatar: string
+    members: number
+    isJoined: boolean
+    isAdmin: boolean
+    privacy: string
+    description: string
+    created: string
+  }
 }
 
-export default function GroupHeader({ groupId }: GroupHeaderProps) {
-  const [isJoined, setIsJoined] = useState(false)
+export default function GroupHeader({ group }: GroupHeaderProps) {
+  const [isJoined, setIsJoined] = useState(group.isJoined)
   const [isNotified, setIsNotified] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
-
-  const groupData = {
-    name: "React Developers Community",
-    coverImage: "/placeholder-cover.jpg",
-    avatar: "/placeholder-group.jpg",
-    privacy: "Public",
-    members: 1250,
-  }
 
   const toggleJoin = () => setIsJoined(!isJoined)
   const toggleNotification = () => setIsNotified(!isNotified)
@@ -28,8 +31,8 @@ export default function GroupHeader({ groupId }: GroupHeaderProps) {
     <div className="relative mb-6 overflow-hidden rounded-lg border border-gray-800 bg-gray-900">
       <div className="relative h-48 w-full sm:h-64">
         <img
-          src={groupData.coverImage}
-          alt={groupData.name}
+          src={group.cover}
+          alt={group.name}
           className="h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -40,17 +43,17 @@ export default function GroupHeader({ groupId }: GroupHeaderProps) {
           <div className="flex items-end space-x-4">
             <div className="relative h-24 w-24 overflow-hidden rounded-lg border-4 border-gray-900">
               <img
-                src={groupData.avatar}
-                alt={groupData.name}
+                src={group.avatar}
+                alt={group.name}
                 className="h-full w-full object-cover"
               />
             </div>
             <div className="mb-1">
-              <h1 className="text-2xl font-bold text-white">{groupData.name}</h1>
+              <h1 className="text-2xl font-bold text-white">{group.name}</h1>
               <div className="flex items-center space-x-2 text-sm text-gray-400">
-                <span>{groupData.privacy} Group</span>
+                <span>{group.privacy} Group</span>
                 <span>•</span>
-                <span>{groupData.members.toLocaleString()} members</span>
+                <span>{group.members.toLocaleString()} members</span>
               </div>
             </div>
           </div>
@@ -109,7 +112,7 @@ export default function GroupHeader({ groupId }: GroupHeaderProps) {
                     Share Group
                   </button>
                   <Link
-                    href={`/groups/${groupId}/settings`}
+                    href={`/groups/${group.id}/settings`}
                     className="flex w-full items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
                     onClick={() => setShowMenu(false)}
                   >
