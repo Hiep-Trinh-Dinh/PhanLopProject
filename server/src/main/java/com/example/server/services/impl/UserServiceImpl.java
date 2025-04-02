@@ -15,14 +15,10 @@ import com.example.server.services.UserService;
 public class UserServiceImpl implements UserService{
 
     @Autowired
-    private UserService userService;
-
-    @Autowired
     private JwtProvider jwtProvider;
 
     @Autowired
     private UserRepository userRepository;
-
 
     @Override
     public User findUserById(Long userId) throws UserException {
@@ -30,7 +26,7 @@ public class UserServiceImpl implements UserService{
             throw new UserException("User ID cannot be null");
         }
     
-        User user = userService.findUserById(userId);
+        User user = userRepository.findUserById(userId);
         if (user == null) {
             throw new UserException("User not found");
         }

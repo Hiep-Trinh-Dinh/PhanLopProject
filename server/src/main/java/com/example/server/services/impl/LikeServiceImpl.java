@@ -13,7 +13,6 @@ import com.example.server.models.User;
 import com.example.server.repositories.LikeRepository;
 import com.example.server.repositories.PostRepository;
 import com.example.server.services.LikeService;
-import com.example.server.services.PostService;
 
 @Service
 public class LikeServiceImpl implements LikeService {
@@ -24,9 +23,6 @@ public class LikeServiceImpl implements LikeService {
     @Autowired
     private PostRepository postRepository;
 
-    @Autowired
-    private PostService postService;
-
     @Override
     public Like likePost(User user, Long postId) throws UserException, PostException {
         Like isLikeExist = likeRepository.isLikeExist(user.getId(), postId);
@@ -36,7 +32,7 @@ public class LikeServiceImpl implements LikeService {
             return isLikeExist;
         }
 
-        Post post = postService.findById(postId);
+        Post post = postRepository.findById(postId).orElseThrow(() -> new PostException("Post not found with id: " + postId));
 
         Like like = new Like();
         like.setUser(user);
@@ -52,7 +48,7 @@ public class LikeServiceImpl implements LikeService {
 
     @Override
     public List<Like> getAllLikes(Long postId) throws PostException {
-        Post post = postService.findById(postId);
+        Post post = postRepository.findById(postId).orElseThrow(() -> new PostException("Post not found with id: " + postId));
         return likeRepository.findByPostId(post.getId());
     }
 }
