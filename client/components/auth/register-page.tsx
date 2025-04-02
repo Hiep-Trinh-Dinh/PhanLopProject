@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
@@ -13,11 +13,12 @@ export default function RegisterPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
-
-  // Auto kéo xuống form khi load trang
   const formRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
+    setMounted(true);
     const timeout = setTimeout(() => {
       if (formRef.current) {
         const targetPosition =
@@ -28,16 +29,19 @@ export default function RegisterPage() {
           behavior: "smooth",
         });
       }
-    }, 500); // Thay đổi giá trị thời gian nếu cần thiết
+    }, 500);
     return () => clearTimeout(timeout);
   }, []);
 
-  // Xử lý khi form được submit
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.push("/home");
+    router.push("/login");
     console.log("Form submitted!");
   };
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-black p-4">
@@ -74,9 +78,9 @@ export default function RegisterPage() {
                     type="text"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    onFocus={(e) => e.target.removeAttribute("readonly")}
                     required
                     className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500"
+                    autoComplete="given-name"
                   />
                   <label
                     htmlFor="firstName"
@@ -90,16 +94,16 @@ export default function RegisterPage() {
                   </label>
                 </div>
 
-                {/* Lastname. */}
+                {/* Lastname */}
                 <div className="relative w-full">
                   <input
                     id="lastName"
                     type="text"
                     value={lastName}
-                    onFocus={(e) => e.target.removeAttribute("readonly")}
                     onChange={(e) => setLastName(e.target.value)}
                     required
                     className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500"
+                    autoComplete="family-name"
                   />
                   <label
                     htmlFor="lastname"
@@ -122,9 +126,9 @@ export default function RegisterPage() {
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    onFocus={(e) => e.target.removeAttribute("readonly")}
                     required
                     className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500"
+                    autoComplete="username"
                   />
                   <label
                     htmlFor="username"
@@ -139,7 +143,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Email. */}
+              {/* Email */}
               <div className="space-y-2">
                 <div className="relative w-full">
                   <input
@@ -147,10 +151,9 @@ export default function RegisterPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    onFocus={(e) => e.target.removeAttribute("readonly")}
                     required
-                    readOnly
                     className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500"
+                    autoComplete="email"
                   />
                   <label
                     htmlFor="email"
@@ -173,13 +176,11 @@ export default function RegisterPage() {
                     name="password"
                     type={showPassword ? "text" : "password"}
                     value={password}
-                    required
-                    readOnly
-                    onFocus={(e) => e.target.removeAttribute("readonly")}
                     onChange={(e) => setPassword(e.target.value)}
+                    required
                     className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500 hide-password-eye"
+                    autoComplete="new-password"
                   />
-
                   <label
                     htmlFor="password"
                     className={`absolute left-2 ${
@@ -190,7 +191,6 @@ export default function RegisterPage() {
                   >
                     Password
                   </label>
-
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -334,16 +334,13 @@ export default function RegisterPage() {
             </form>
           </div>
 
-          <div
-            ref={formRef}
-            className="border-t border-gray-800 bg-gray-900 p-3"
-          >
+          <div className="border-t border-gray-800 bg-gray-900 p-3">
             <div className="text-center text-gray-400">
               <p className="text-lg p-1 select-none pointer-events-none">
                 Already have an account?{" "}
                 <Link
-                  href="/"
-                  className=" text-lg text-blue-400 hover:underline select-text pointer-events-auto"
+                  href="/login"
+                  className="text-lg text-blue-400 hover:underline select-text pointer-events-auto"
                 >
                   Log In
                 </Link>
@@ -354,4 +351,4 @@ export default function RegisterPage() {
       </div>
     </div>
   );
-};
+}

@@ -5,28 +5,32 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
+import Cookies from 'js-cookie';
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    setTimeout(() => {
-      document.getElementById("username")?.setAttribute("autocomplete", "off");
-      document
-        .getElementById("password")
-        ?.setAttribute("autocomplete", "new-password");
-    }, 100); // Thay đổi giá trị của thuộc tính sau 100ms
+    setMounted(true);
   }, []);
 
-  // ✅ Xử lý khi form được submit
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.push("/home");
-    console.log("Form submitted!");
+    
+    // Lưu token giả vào cookie để kiểm tra quá trình chuyển trang
+    Cookies.set('token', 'dummy-token', { expires: 7 });
+    
+    // Chuyển hướng đến trang home
+    router.push('/home');
   };
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-black p-4 overflow-hidden">
@@ -59,10 +63,9 @@ export default function LoginPage() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  onFocus={(e) => e.target.removeAttribute("readonly")}
                   required
-                  readOnly
                   className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500"
+                  autoComplete="off"
                 />
                 <label
                   htmlFor="username"
@@ -84,9 +87,9 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     required
                     value={password}
-                    onFocus={(e) => e.target.removeAttribute("readonly")}
                     onChange={(e) => setPassword(e.target.value)}
                     className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500 hide-password-eye"
+                    autoComplete="new-password"
                   />
                   <label
                     htmlFor="password"
@@ -125,7 +128,7 @@ export default function LoginPage() {
                 </div>
                 <Link
                   href="/forgot-password"
-                  className="text-sm text-blue-400 hover:underline select-none "
+                  className="text-sm text-blue-400 hover:underline select-none"
                 >
                   Forgot password?
                 </Link>
@@ -142,7 +145,7 @@ export default function LoginPage() {
 
           <div className="border-t border-gray-800 bg-gray-900 p-6">
             <div className="text-center text-sm text-gray-400">
-              <p className=" text-lg select-none">
+              <p className="text-lg select-none">
                 Don&apos;t have an account?{" "}
                 <Link
                   href="/register"

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { Group, Home, Users, Video, User, Settings, Menu } from "lucide-react";
 import NotificationsDropdown from "../notifications/notifications-header";
+import Cookies from 'js-cookie';
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -14,12 +15,25 @@ interface NavbarProps {
 export default function Navbar({ onMenuClick }: NavbarProps) {
   const pathname = usePathname();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handleLogout = () => {
+    // Xóa token khỏi cookie
+    Cookies.remove('token');
+    // Đóng dropdown
     setShowDropdown(false);
-    router.push("/");
+    // Chuyển hướng về trang login
+    router.push('/login');
   };
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <header className="fixed top-0 left-0 w-full h-14 z-50 bg-gray-900 px-6 py-2 flex items-center justify-between">
