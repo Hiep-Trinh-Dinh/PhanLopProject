@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
+import { registerUser } from '@/utils/api';
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -16,6 +17,12 @@ export default function RegisterPage() {
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const formRef = useRef<HTMLDivElement | null>(null);
+  const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [day, setDay] = useState('');
+  const [month, setMonth] = useState('');
+  const [year, setYear] = useState('');
+  const [gender, setGender] = useState('');
 
   useEffect(() => {
     setMounted(true);
@@ -33,10 +40,45 @@ export default function RegisterPage() {
     return () => clearTimeout(timeout);
   }, []);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.push("/login");
-    console.log("Form submitted!");
+    setError('');
+    setLoading(true);
+
+    // Validate date
+    if (!day || !month || !year) {
+      setError('Please select your date of birth');
+      setLoading(false);
+      return;
+    }
+
+    // Validate gender
+    if (!gender) {
+      setError('Please select your gender');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const dateOfBirth = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      const fullName = `${firstName} ${lastName}`;
+
+      await registerUser({
+        username,
+        email,
+        password,
+        name: fullName,
+        dateOfBirth,
+        gender,
+      });
+
+      // Chuyển hướng đến trang login
+      router.push('/login');
+    } catch (error) {
+      setError('Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!mounted) {
@@ -70,6 +112,9 @@ export default function RegisterPage() {
 
           <div className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="text-red-500 text-sm text-center">{error}</div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 {/* Firstname */}
                 <div className="relative w-full">
@@ -211,7 +256,11 @@ export default function RegisterPage() {
                 </label>
                 <div className="flex gap-4">
                   {/* Day */}
-                  <select className="w-1/3 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <select 
+                    value={day}
+                    onChange={(e) => setDay(e.target.value)}
+                    className="w-1/3 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white"
+                  >
                     <option value="">Day</option>
                     {Array.from({ length: 31 }, (_, i) => (
                       <option key={i + 1} value={i + 1}>
@@ -220,7 +269,11 @@ export default function RegisterPage() {
                     ))}
                   </select>
                   {/* Month */}
-                  <select className="w-1/3 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <select 
+                    value={month}
+                    onChange={(e) => setMonth(e.target.value)}
+                    className="w-1/3 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white"
+                  >
                     <option value="">Month</option>
                     {[
                       "Jan",
@@ -242,7 +295,11 @@ export default function RegisterPage() {
                     ))}
                   </select>
                   {/* Year */}
-                  <select className="w-1/3 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <select 
+                    value={year}
+                    onChange={(e) => setYear(e.target.value)}
+                    className="w-1/3 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white"
+                  >
                     <option value="">Year</option>
                     {Array.from({ length: 100 }, (_, i) => (
                       <option key={i} value={new Date().getFullYear() - i}>
@@ -265,7 +322,8 @@ export default function RegisterPage() {
                     type="radio"
                     id="male"
                     name="gender"
-                    value="male"
+                    value="MALE"
+                    onChange={(e) => setGender(e.target.value)}
                     className="h-4 w-4 accent-blue-500"
                   />
                   <span className="text-sm text-gray-300 select-none pointer-events-none">
@@ -278,7 +336,8 @@ export default function RegisterPage() {
                     type="radio"
                     id="female"
                     name="gender"
-                    value="female"
+                    value="FEMALE"
+                    onChange={(e) => setGender(e.target.value)}
                     className="h-4 w-4 accent-pink-500"
                   />
                   <span className="text-sm text-gray-300 select-none pointer-events-none">
@@ -291,7 +350,8 @@ export default function RegisterPage() {
                     type="radio"
                     id="custom"
                     name="gender"
-                    value="custom"
+                    value="CUSTOM"
+                    onChange={(e) => setGender(e.target.value)}
                     className="h-4 w-4 accent-green-500 "
                   />
                   <span className="text-sm text-gray-300 select-none pointer-events-none">
@@ -327,9 +387,10 @@ export default function RegisterPage() {
 
               <button
                 type="submit"
-                className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={loading}
+                className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               >
-                Sign Up
+                {loading ? 'Signing up...' : 'Sign Up'}
               </button>
             </form>
           </div>

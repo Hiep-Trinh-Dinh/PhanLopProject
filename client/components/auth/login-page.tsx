@@ -6,26 +6,39 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import Cookies from 'js-cookie';
+import { loginUser } from '@/utils/api';
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    
-    // Lưu token giả vào cookie để kiểm tra quá trình chuyển trang
-    Cookies.set('token', 'dummy-token', { expires: 7 });
-    
-    // Chuyển hướng đến trang home
-    router.push('/home');
+    setError('');
+    setLoading(true);
+
+    try {
+      const data = await loginUser(username, password);
+      
+      // Lưu token vào cookie
+      Cookies.set('token', data.token, { expires: 7 });
+      
+      // Chuyển hướng đến trang home
+      router.push('/home');
+    } catch (error) {
+      setError('Invalid username or password');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!mounted) {
@@ -56,6 +69,10 @@ export default function LoginPage() {
 
           <div className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="text-red-500 text-sm text-center">{error}</div>
+              )}
+
               {/* Username */}
               <div className="relative w-full">
                 <input
@@ -136,9 +153,10 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={loading}
+                className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               >
-                Log In
+                {loading ? 'Logging in...' : 'Log In'}
               </button>
             </form>
           </div>
