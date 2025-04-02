@@ -1,25 +1,19 @@
-// src/main/java/com/example/server/services/UserService.java
 package com.example.server.services;
-
-import com.example.server.models.Users;
-import com.example.server.repositories.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service
-@RequiredArgsConstructor
-public class UserService {
-    private final UserRepository userRepository;
+import com.example.server.exception.UserException;
+import com.example.server.models.User;
 
-    //Lưu user vào data
-    public Users createUser(Users user) {
-        return userRepository.save(user);
-    }
+public interface UserService {
 
-    //Lấy danh sách user
-    public List<Users> getAllUsers() {
-        return userRepository.findAll();
-    }
+    public User findUserById(Long userId) throws UserException;
+
+    public User findUserProfileByJwt(String jwt) throws UserException;
+
+    public User updateUser(Long userId, User req) throws UserException;
+
+    public User followUser(Long userId, User user) throws UserException;
+
+    public List<User> seacrhUser(String query);
 }

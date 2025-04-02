@@ -1,28 +1,86 @@
-// src/main/java/com/example/server/controllers/UserController.java
 package com.example.server.controllers;
 
-import com.example.server.models.Users;
-import com.example.server.services.UserService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.server.dto.UserDto;
+import com.example.server.exception.UserException;
+import com.example.server.mapper.UserDtoMapper;
+import com.example.server.models.User;
+import com.example.server.services.UserService;
+import com.example.server.utils.UserUtil;
 
 @RestController
 @RequestMapping("/api/users")
-@RequiredArgsConstructor
 public class UserController {
-    private final UserService userService;
+    
+    @Autowired
+    private UserService userService;
 
-    //Lấy danh sách người dùng
-    @GetMapping
-    public ResponseEntity<List<Users>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    @GetMapping("/profile")
+    public ResponseEntity<UserDto> getUserProfile(@RequestHeader("Authorization") String jwt) throws UserException{
+        User user = userService.findUserProfileByJwt(jwt);
+        UserDto userDto = UserDtoMapper.toUserDto(user);
+
+        userDto.setReq_user(true);
+
+        return new ResponseEntity<UserDto>(userDto, HttpStatus.ACCEPTED);
     }
 
-    //tạo người dùng mới
-    @PostMapping
-    public ResponseEntity<Users> createUser(@RequestBody Users user) {
-        return ResponseEntity.ok(userService.createUser(user));
+    @GetMapping("/{userId}")
+    public ResponseEntity<UserDto> getUserId(@PathVariable Long userId, @RequestHeader("Authorization") String jwt) throws UserException{
+        User reqUser = userService.findUserProfileByJwt(jwt);
+
+        User user = userService.findUserById(userId);
+
+        UserDto userDto = UserDtoMapper.toUserDto(user);
+
+        userDto.setReq_user(UserUtil.isReqUser(reqUser, user));
+        userDto.setFollowed(UserUtil.isFollwingByReqUser(reqUser, user));
+
+        return new ResponseEntity<UserDto>(userDto, HttpStatus.ACCEPTED);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<UserDto>> searchUser(@RequestParam String query, @RequestHeader("Authorization") String jwt) throws UserException{
+        List<User> users = userService.seacrhUser(query);
+
+        List<UserDto> userDtos = UserDtoMapper.toUserDtos(users);
+
+        return new ResponseEntity<>(userDtos, HttpStatus.ACCEPTED);
+    }
+
+    @PutMapping("/update")
+    public ResponseEntity<UserDto> searchUser(@RequestBody User req, @RequestHeader("Authorization") String jwt) throws UserException{
+        User reqUser = userService.findUserProfileByJwt(jwt);
+
+        User user = userService.updateUser(reqUser.getId(), req);
+
+        UserDto userDto = UserDtoMapper.toUserDto(user);
+
+        return new ResponseEntity<>(userDto, HttpStatus.ACCEPTED);
+    }
+
+    @PutMapping("/{userId}/follow")
+    public ResponseEntity<UserDto> searchUser(@PathVariable Long userId, @RequestHeader("Authorization") String jwt) throws UserException{
+        User reqUser = userService.findUserProfileByJwt(jwt);
+
+        User user = userService.followUser(userId, reqUser);
+
+        UserDto userDto = UserDtoMapper.toUserDto(user);
+        userDto.setFollowed(UserUtil.isFollwingByReqUser(reqUser, user));
+
+        return new ResponseEntity<>(userDto, HttpStatus.ACCEPTED);
     }
 }

@@ -1,14 +1,16 @@
-// src/main/java/com/example/server/repositories/UserRepository.java
 package com.example.server.repositories;
 
-import com.example.server.models.Users;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
-import java.util.Optional;
+import com.example.server.models.User;
 
-@Repository
-public interface UserRepository extends JpaRepository<Users, Long> {
-    //Tìm người dùng bằng địa chỉ email
-    Optional<Users> findByEmail(String email);
+public interface UserRepository extends JpaRepository<User, Long> {
+    User findByEmail(String email);
+
+    @Query("SELECT DISTINCT u FROM User u WHERE u.fullName LIKE %:query% OR u.email LIKE %:query%")
+    List<User> searchUser(@Param("query") String query);
 }
