@@ -49,8 +49,12 @@ public class UserServiceImpl implements UserService{
     public User updateUser(Long userId, User req) throws UserException {
         User user = findUserById(userId);
 
-        if(req.getFullName() != null) {
-            user.setFullName(req.getFullName());
+        if(req.getFirstName() != null) {
+            user.setFirstName(req.getFirstName());
+        }
+
+        if(req.getLastName() != null) {
+            user.setLastName(req.getLastName());
         }
 
         if(req.getImage() != null) {

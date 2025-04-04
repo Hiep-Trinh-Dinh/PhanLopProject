@@ -7,7 +7,11 @@ export default function NotificationsPage() {
     <MainLayout>
       <div className="mx-auto max-w-3xl space-y-6">
         <NotificationsHeader />
-        <NotificationsList />
+        <NotificationsList 
+          notifications={[]} 
+          setNotifications={() => {}} 
+          onUpdateUnread={() => {}} 
+        />
       </div>
     </MainLayout>
   )

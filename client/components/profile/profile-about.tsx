@@ -1,6 +1,8 @@
 "use client"
 
 import { Briefcase, GraduationCap, Heart, Home, MapPin } from "lucide-react"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 interface ProfileAboutProps {
   userId: number
@@ -46,6 +48,52 @@ export default function ProfileAbout({ userId }: ProfileAboutProps) {
       phone: "+1 (555) 123-4567",
       website: "https://johndoe.dev",
     },
+  }
+
+  interface User {
+    email: string;
+    firstName: string;
+    lastName: string;
+    birthDate: string;
+    gender: string;
+  }
+
+  const [user, setUser] = useState<User | null>(null);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`http://localhost:8080/api/auth/me`, {
+          credentials: "include", // Gửi cookie jwt
+        });
+
+        if (!response.ok) {
+          throw new Error("Không thể lấy dữ liệu người dùng");
+        }
+
+        const data = await response.json();
+        setUser(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+        router.push("/"); // Chuyển về login nếu không có quyền truy cập
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [router]);
+
+  if (isLoading) {
+    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="flex min-h-screen items-center justify-center text-red-500">{error}</div>;
   }
 
   return (
@@ -144,6 +192,15 @@ export default function ProfileAbout({ userId }: ProfileAboutProps) {
                 {aboutInfo.contactInfo.website.replace(/^https?:\/\//, "")}
               </a>
             </div>
+            {user && (
+                <div className="mt-4 text-center">
+                  <p>Email: {user.email}</p>
+                  <p>First Name: {user.firstName}</p>
+                  <p>Last Name: {user.lastName}</p>
+                  <p>Birth Date: {user.birthDate}</p>
+                  <p>Gender: {user.gender}</p>
+                </div>
+              )}
           </div>
         </div>
       </div>

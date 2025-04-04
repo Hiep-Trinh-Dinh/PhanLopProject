@@ -24,20 +24,31 @@ public class UserDtoMapper {
         if (users == null) return List.of();
 
         return users.stream()
-                    .map(UserDtoMapper::mapToUserDto)
-                    .collect(Collectors.toList());
+                   .map(UserDtoMapper::mapToUserDto)
+                   .collect(Collectors.toList());
     }
 
     private static UserDto mapToUserDto(User user) {
         UserDto userDto = new UserDto();
         userDto.setId(user.getId());
-        userDto.setFullName(user.getFullName());
+        userDto.setFirstName(user.getFirstName()); // Lưu ý: có vẻ có typo "fristName" thay vì "firstName"
+        userDto.setLastName(user.getLastName());
         userDto.setLocation(user.getLocation());
         userDto.setWebsite(user.getWebsite());
         userDto.setBio(user.getBio());
         userDto.setImage(user.getImage());
         userDto.setBackgroundImage(user.getBackgroundImage());
         userDto.setBirthDate(user.getBirthDate());
+        
+        // Xử lý gender - chuyển từ enum sang giá trị frontend
+        userDto.setGender(user.getGender() != null ? user.getGender().getFrontendValue() : null);
+        
+        userDto.setIsOnline(user.getIsOnline());
+        userDto.setLastSeen(user.getLastSeen());
+        userDto.setPostsCount(user.getPostsCount());
+        userDto.setCreatedAt(user.getCreatedAt());
+        userDto.setReq_user(user.getReq_user());
+        
         return userDto;
     }
 }

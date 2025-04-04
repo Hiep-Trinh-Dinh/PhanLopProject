@@ -32,7 +32,7 @@ export default function GroupPage({ params }: { params: { id: string } }) {
   return (
     <MainLayout>
       <div className="mx-auto max-w-5xl">
-        <GroupHeader group={group} />
+        <GroupHeader groupId={group.id} />
         <GroupTabs groupId={group.id} />
       </div>
     </MainLayout>

@@ -1,44 +1,81 @@
 package com.example.server.config;
 
-import java.util.Date;
-
-import javax.crypto.SecretKey;
-
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SecurityException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
+import javax.crypto.SecretKey;
+import java.util.Date;
 
 @Service
 public class JwtProvider {
-    
-    SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());
 
-    public String generateToken(Authentication auth) {
-        String jwt = Jwts.builder()
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(new Date().getTime() + 86400000))
-                .claim("email", auth.getName())
-                .signWith(key)
-                .compact();
+    @Value("${jwt.secret}")
+    private String secretKey;
 
-        return jwt;
+    @Value("${jwt.expiration}")
+    private long jwtExpirationMs;
+
+    private SecretKey getSigningKey() {
+        return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
-    public String getEmailFromToken(String jwt) {
+    public String generateToken(Authentication auth) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 
-        jwt = jwt.substring(7);
+        return Jwts.builder()
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .claim("email", auth.getName())
+                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+                .compact();
+    }
 
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
+    public boolean validateToken(String token) {
+        try {
+            // Bỏ qua phần "Bearer " nếu có
+            String jwt = token.startsWith("Bearer ") ? token.substring(7) : token;
+            
+            Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(jwt);
+                
+            return true;
+        } catch (SecurityException | MalformedJwtException e) {
+            // Invalid signature/claims
+            System.err.println("Invalid JWT: " + e.getMessage());
+        } catch (ExpiredJwtException e) {
+            // Token hết hạn
+            System.err.println("Expired JWT: " + e.getMessage());
+        } catch (UnsupportedJwtException e) {
+            // Token không đúng định dạng
+            System.err.println("Unsupported JWT: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            // Token rỗng/null
+            System.err.println("JWT claims string is empty: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public String getEmailFromToken(String token) {
+        try {
+            String jwt = token.startsWith("Bearer ") ? token.substring(7) : token;
+            
+            Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(jwt)
                 .getBody();
-        
-        String email = String.valueOf(claims.get("email"));
-
-        return email;
+                
+            return claims.get("email", String.class);
+        } catch (JwtException | IllegalArgumentException e) {
+            System.err.println("Error parsing JWT: " + e.getMessage());
+            throw new JwtException("Invalid token", e);
+        }
     }
 }

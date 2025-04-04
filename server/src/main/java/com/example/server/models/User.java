@@ -8,13 +8,13 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
@@ -32,15 +32,14 @@ import lombok.NoArgsConstructor;
 public class User {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String fullName;
+    private String firstName;
+    private String lastName;
     private String location;
     private String website;
-
     private String phone;
-
     private String email;
     private String birthDate;
     private String password;
@@ -60,8 +59,8 @@ public class User {
     @Column(name = "last_seen")
     private LocalDateTime lastSeen;
 
-    @Column(name = "is_verified")
-    private Boolean isVerified = false;
+    @Column(name = "is_email_verified")
+    private Boolean isEmailVerified = false;
 
     @Column(name = "is_active")
     private Boolean isActive = true;
@@ -72,9 +71,6 @@ public class User {
 
     @Column(name = "reset_password_expires")
     private LocalDateTime resetPasswordExpires;
-
-    @Column(name = "is_email_verified")
-    private Boolean isEmailVerified = false;
 
     // Thống kê
     @Column(name = "posts_count")
@@ -92,12 +88,30 @@ public class User {
     }
 
     public enum Gender {
-        MALE,
-        FEMALE,
-        OTHER
+        MALE("male"),
+        FEMALE("female"), 
+        OTHER("custom");
+
+        private final String frontendValue;
+
+        Gender(String frontendValue) {
+            this.frontendValue = frontendValue;
+        }
+
+        public String getFrontendValue() {
+            return frontendValue;
+        }
+
+        public static Gender fromFrontendValue(String value) {
+            for (Gender gender : values()) {
+                if (gender.frontendValue.equalsIgnoreCase(value)) {
+                    return gender;
+                }
+            }
+            throw new IllegalArgumentException("Invalid gender value: " + value);
+        }
     }
 
-    
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -116,9 +130,9 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Like> likes = new ArrayList<>();
 
-    @Embedded
+    @OneToOne(cascade = CascadeType.ALL)
     private Verification verification;
-    
+
     @JsonIgnore
     @ManyToMany
     private List<User> followers = new ArrayList<>();

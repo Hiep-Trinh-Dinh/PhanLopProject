@@ -51,7 +51,7 @@ export default function ForgotPasswordClient() {
         <div className="rounded-lg border border-gray-800 bg-gray-900">
           <div className="p-4">
             <div className="flex items-center justify-center space-x-2">
-              <Link href="/login" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="/" className="text-gray-400 hover:text-white transition-colors">
                 <ArrowLeft size={24} />
               </Link>
               <h2 className="text-center text-3xl text-white select-none pointer-events-none">

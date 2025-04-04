@@ -11,8 +11,10 @@ import com.example.server.models.User;
 public interface UserRepository extends JpaRepository<User, Long> {
     User findByEmail(String email);
 
-    @Query("SELECT DISTINCT u FROM User u WHERE u.fullName LIKE %:query% OR u.email LIKE %:query%")
+    @Query("SELECT DISTINCT u FROM User u WHERE LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<User> searchUser(@Param("query") String query);
 
     User findUserById(Long userId);
+
+    User existsByEmail(String email);
 }
