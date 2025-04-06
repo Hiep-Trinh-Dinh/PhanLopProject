@@ -1,24 +1,25 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get('jwt')?.value
-  const { pathname } = request.nextUrl
+  // Sử dụng tên cookie "auth_token" thay vì "jwt"
+  const token = request.cookies.get('auth_token')?.value;
+  const { pathname } = request.nextUrl;
 
   // Danh sách các route công khai không cần xác thực
-  const publicRoutes = ['/','/login', '/register', '/forgot-password', '/verify-email', '/reset-password']
-  
-  // Nếu đã đăng nhập mà truy cập vào trang login/register
+  const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/verify-email', '/reset-password'];
+
+  // Nếu đã đăng nhập mà truy cập vào trang công khai
   if (token && publicRoutes.includes(pathname)) {
-    return NextResponse.redirect(new URL('/home', request.url))
+    return NextResponse.redirect(new URL('/home', request.url));
   }
-  
+
   // Nếu chưa đăng nhập mà truy cập vào trang protected
   if (!token && !publicRoutes.includes(pathname)) {
-    return NextResponse.redirect(new URL('/', request.url))
+    return NextResponse.redirect(new URL('/', request.url));
   }
-  
-  return NextResponse.next()
+
+  return NextResponse.next();
 }
 
 export const config = {
@@ -32,4 +33,4 @@ export const config = {
      */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
-}
+};

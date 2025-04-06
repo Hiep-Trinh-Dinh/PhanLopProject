@@ -1,31 +1,33 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { Eye, EyeOff } from "lucide-react"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
+  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
-  // Kiểm tra đăng nhập khi trang load
+  // Kiểm tra trạng thái đăng nhập khi trang load
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/api/auth/me`, {
-          credentials: 'include'
+        const response = await fetch("http://localhost:8080/api/auth/me", {
+          method: "GET",
+          credentials: "include", // Gửi cookie
         });
-        
+
         if (response.ok) {
-          router.push('/home');
+          router.push("/home");
+          router.refresh(); // Đảm bảo dữ liệu mới được tải
         }
       } catch (error) {
-        console.log("User not authenticated");
+        console.log("User not authenticated yet:", error);
       }
     };
 
@@ -33,85 +35,68 @@ export default function LoginPage() {
 
     // Tắt autocomplete
     const timer = setTimeout(() => {
-      document.getElementById("email")?.setAttribute("autocomplete", "off")
-      document.getElementById("password")?.setAttribute("autocomplete", "new-password")
-    }, 100)
-    
-    return () => clearTimeout(timer)
-  }, [router])
+      document.getElementById("email")?.setAttribute("autocomplete", "off");
+      document.getElementById("password")?.setAttribute("autocomplete", "new-password");
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [router]);
 
   const validateForm = () => {
     if (!email) {
       setError("Email không được để trống");
       return false;
     }
-    
+
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError("Email không hợp lệ");
       return false;
     }
-    
+
     if (!password) {
       setError("Mật khẩu không được để trống");
       return false;
     }
-    
+
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!validateForm()) {
-      return;
-    }
-    
-    setError("")
-    setIsLoading(true)
-
+  const handleSubmit = async (e: { preventDefault: () => void; }) => {
+    e.preventDefault();
+  
+    if (!validateForm()) return;
+  
+    setError("");
+    setIsLoading(true);
+  
     try {
-      const response = await fetch(`http://localhost:8080/api/auth/signin`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+      const response = await fetch("http://localhost:8080/api/auth/signin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify({ email, password }),
-        credentials: 'include'
-      })
-
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        throw new Error(text || 'Invalid server response');
-      }
-
+        credentials: "include",
+      });
+  
+      console.log("Signin response status:", response.status); // Debug
       const data = await response.json();
-
+      console.log("Signin response data:", data); // Debug
+  
       if (!response.ok) {
-        throw new Error(data.message || data.error || "Đăng nhập thất bại");
+        throw new Error(data.message || "Đăng nhập thất bại");
       }
-
-      router.push('/home')
-      router.refresh()
-    } catch (err: any) {
-      let errorMessage = "Đăng nhập thất bại";
-    
-      if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
-        errorMessage = "Không thể kết nối đến server";
-      } else if (err.message.includes('Unauthorized')) {
-        errorMessage = "Email hoặc mật khẩu không đúng";
-      } else if (err.message.includes('Email not verified')) {
-        errorMessage = "Vui lòng xác minh email trước khi đăng nhập";
-      } else {
-        errorMessage = err.message || errorMessage;
-      }
-      
-      setError(errorMessage);
+  
+      router.push("/home");
+      router.refresh();
+    } catch (err:any) {
+      console.error("Signin error:", err);
+      setError(err.message || "Đăng nhập thất bại");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-black p-4 overflow-hidden">
@@ -150,7 +135,8 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500"
+                  disabled={isLoading}
+                  className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500 disabled:opacity-50"
                 />
                 <label
                   htmlFor="email"
@@ -169,7 +155,8 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500"
+                  disabled={isLoading}
+                  className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500 disabled:opacity-50"
                 />
                 <label
                   htmlFor="password"
@@ -182,7 +169,8 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  disabled={isLoading}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 disabled:opacity-50"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -193,7 +181,8 @@ export default function LoginPage() {
                   <input
                     type="checkbox"
                     id="remember"
-                    className="h-4 w-4 rounded border-gray-700 bg-gray-800"
+                    disabled={isLoading}
+                    className="h-4 w-4 rounded border-gray-700 bg-gray-800 disabled:opacity-50"
                   />
                   <label htmlFor="remember" className="text-sm text-gray-300 select-none">
                     Remember me
@@ -208,17 +197,17 @@ export default function LoginPage() {
                 type="submit"
                 disabled={isLoading}
                 className={`w-full rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  isLoading ? 'bg-blue-700 cursor-wait' : 'bg-blue-600 hover:bg-blue-700'
+                  isLoading ? "bg-blue-700 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
                 }`}
               >
-                {isLoading ? 'Processing...' : 'Log In'}
+                {isLoading ? "Processing..." : "Log In"}
               </button>
             </form>
           </div>
 
           <div className="border-t border-gray-800 p-6 text-center">
             <p className="text-gray-400">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{" "}
               <Link href="/register" className="text-blue-400 hover:underline">
                 Sign Up
               </Link>
@@ -227,5 +216,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

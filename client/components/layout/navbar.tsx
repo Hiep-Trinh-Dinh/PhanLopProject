@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
@@ -11,15 +11,74 @@ interface NavbarProps {
   onMenuClick: () => void;
 }
 
+interface User {
+  id: number;
+  firstName: string;
+  lastName: string;
+  image: string;
+  backgroundImage?: string;
+  bio: string;
+}
+
 export default function Navbar({ onMenuClick }: NavbarProps) {
   const pathname = usePathname();
   const [showDropdown, setShowDropdown] = useState(false);
   const router = useRouter();
 
-  const handleLogout = () => {
-    setShowDropdown(false);
-    router.push("/");
+  const [user, setUser] = useState<User | null>(null);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("http://localhost:8080/api/auth/logout", {
+        method: "POST",
+        credentials: "include", // Đảm bảo cookie được gửi theo request
+      });
+    } catch (error) {
+      console.error("Lỗi khi đăng xuất:", error);
+    } finally {
+      setShowDropdown(false);
+      router.push("/"); // Sau khi logout thì chuyển về trang chính
+    }
   };
+
+    useEffect(() => {
+      const fetchUserData = async () => {
+        try {
+          setIsLoading(true);
+          const response = await fetch(`http://localhost:8080/api/auth/me`, {
+            credentials: "include",
+          });
+  
+          if (!response.ok) {
+            throw new Error("Không thể lấy dữ liệu người dùng");
+          }
+  
+          const data = await response.json();
+          setUser(data);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+          router.push("/");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+  
+      fetchUserData();
+    }, [router]);
+
+    if (isLoading) {
+      return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+    }
+  
+    if (error) {
+      return <div className="flex min-h-screen items-center justify-center text-red-500">{error}</div>;
+    }
+  
+    if (!user) {
+      return <div className="flex min-h-screen items-center justify-center text-red-500">Người dùng không tồn tại</div>;
+    }
 
   return (
     <header className="fixed top-0 left-0 w-full h-14 z-50 bg-gray-900 px-6 py-2 flex items-center justify-between">
@@ -98,8 +157,8 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
           >
             <div className="relative h-9 w-9 overflow-hidden rounded-full border border-gray-700">
               <img
-                src="/placeholder-user.jpg"
-                alt="User"
+                src={user?.image || ""}
+                alt={user?.firstName || "User"}
                 className="h-full w-full object-cover"
               />
             </div>

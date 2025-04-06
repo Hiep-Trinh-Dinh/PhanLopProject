@@ -25,9 +25,19 @@ public class UserDto {
     private String bio;
     private String backgroundImage;
     private String phone;
-    private Boolean req_user;
+    private Boolean isRequestingUser;
     private Boolean login_with_Google;
 
+    private String email_contact;
+    private String phone_contact;
+
+    private String currentCity;
+    private String hometown;
+    private String relationshipStatus;
+    
+    private List<WorkExperienceDto> workExperiences = new ArrayList<>();
+    private List<EducationDto> educations = new ArrayList<>();
+    
     private String gender;
     private Boolean isOnline;
     private LocalDateTime lastSeen;
@@ -46,4 +56,6 @@ public class UserDto {
             Gender.fromFrontendValue(gender) : 
             null;
     }
+
+    private LocalDateTime updatedAt;
 }

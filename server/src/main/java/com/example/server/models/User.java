@@ -14,6 +14,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
@@ -42,11 +44,18 @@ public class User {
     private String phone;
     private String email;
     private String birthDate;
+
+    @JsonIgnore
     private String password;
+    
     private String image;
     private String bio;
     private String backgroundImage;
-    private Boolean req_user = false;
+
+    private String email_contact;
+    private String phone_contact;
+
+    private Boolean isRequestingUser = false;
     private Boolean login_with_Google = false;
 
     @Enumerated(EnumType.STRING)
@@ -82,10 +91,6 @@ public class User {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    public enum RelationshipStatus {
-        SINGLE, IN_RELATIONSHIP, MARRIED, COMPLICATED
-    }
 
     public enum Gender {
         MALE("male"),
@@ -133,11 +138,27 @@ public class User {
     @OneToOne(cascade = CascadeType.ALL)
     private Verification verification;
 
-    @JsonIgnore
     @ManyToMany
-    private List<User> followers = new ArrayList<>();
+    @JoinTable(
+        name = "user_followers",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "follower_id")
+    )
+    private List<User> followers;
 
     @JsonIgnore
     @ManyToMany
     private List<User> following = new ArrayList<>();
+
+    // Work & Education
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<WorkExperience> workExperiences = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Education> educations = new ArrayList<>();
+
+    private String currentCity;
+    private String hometown;
+
+    private String relationshipStatus;
 }

@@ -55,6 +55,8 @@ public class AuthController {
     @Value("${jwt.cookie.expiration:604800}") // 7 ngày
     private int cookieExpiration;
 
+    private static final String COOKIE_NAME = "auth_token"; // Đảm bảo khớp với CookieTokenValidator
+
     @PostMapping("/signup")
     public ResponseEntity<AuthResponse> createUserHandler(@Valid @RequestBody SignupRequest signupRequest) throws UserException {
         String email = signupRequest.getEmail();
@@ -116,7 +118,7 @@ public class AuthController {
         }
     
         user.setIsEmailVerified(true);
-        user.setVerification(null); // Xóa mã xác minh sau khi xác minh thành công
+        user.setVerification(null);
         userRepository.save(user);
     
         return new ResponseEntity<>("Xác minh thành công! Bạn có thể đăng nhập.", HttpStatus.OK);
@@ -137,7 +139,7 @@ public class AuthController {
             throw new UserException("Vui lòng xác minh email trước khi đăng nhập.");
         }
         
-        // Tạo token và cookie
+        // Tạo token và set cookie
         String token = jwtProvider.generateToken(authentication);
         setJwtCookie(response, token);
         
@@ -167,37 +169,47 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<UserDto> getCurrentUser(
-        @CookieValue(name = "jwt", required = false) String token
+        @CookieValue(name = COOKIE_NAME, required = false) String token,
+        HttpServletResponse response
     ) {
+        // Kiểm tra token trong cookie
         if (token == null || !jwtProvider.validateToken(token)) {
+            clearJwtCookie(response);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         
+        // Lấy email từ token
         String email = jwtProvider.getEmailFromToken(token);
-        User user = userRepository.findByEmail(email);
         
+        // Tìm người dùng dựa trên email
+        User user = userRepository.findByEmail(email);
         if (user == null) {
-            return ResponseEntity.notFound().build();
+            clearJwtCookie(response);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
         
+        // Trả về thông tin người dùng dưới dạng UserDto
         return ResponseEntity.ok(UserDtoMapper.toUserDto(user));
     }
 
     private void setJwtCookie(HttpServletResponse response, String token) {
-        Cookie cookie = new Cookie("jwt", token);
+        Cookie cookie = new Cookie(COOKIE_NAME, token);
         cookie.setHttpOnly(true);
         cookie.setSecure(secureCookie);
         cookie.setPath("/");
         cookie.setMaxAge(cookieExpiration);
+        // Thêm SameSite để tăng bảo mật
+        cookie.setAttribute("SameSite", "Strict");
         response.addCookie(cookie);
     }
 
     private void clearJwtCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie("jwt", "");
+        Cookie cookie = new Cookie(COOKIE_NAME, "");
         cookie.setHttpOnly(true);
         cookie.setSecure(secureCookie);
         cookie.setPath("/");
         cookie.setMaxAge(0);
+        cookie.setAttribute("SameSite", "Strict");
         response.addCookie(cookie);
     }
 }
