@@ -1,85 +1,66 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Group, Home, Users, Video, User, Settings, Menu } from "lucide-react";
 import NotificationsDropdown from "../notifications/notifications-header";
 import Image from "next/image";
+import { useUserData } from "@/app/api/auth/me/useUserData";
+import React from "react";
 
 interface NavbarProps {
   onMenuClick: () => void;
 }
 
-interface User {
-  id: number;
-  firstName: string;
-  lastName: string;
-  image: string;
-  backgroundImage?: string;
-  bio: string;
-}
-
 export default function Navbar({ onMenuClick }: NavbarProps) {
   const pathname = usePathname();
-  const [showDropdown, setShowDropdown] = useState(false);
   const router = useRouter();
+  const [showDropdown, setShowDropdown] = React.useState(false);
 
-  const [user, setUser] = useState<User | null>(null);
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const { userData: user, isLoading, error } = useUserData(1); // userId tạm thời là 1
+
+  // Hàm xóa cookie
+  const deleteCookie = (name: string) => {
+    document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  };
 
   const handleLogout = async () => {
     try {
-      await fetch("http://localhost:8080/api/auth/logout", {
+      const response = await fetch("http://localhost:8080/api/auth/logout", {
         method: "POST",
-        credentials: "include", // Đảm bảo cookie được gửi theo request
+        credentials: "include",
       });
-    } catch (error) {
-      console.error("Lỗi khi đăng xuất:", error);
+      if (!response.ok) throw new Error("Logout failed");
+    } catch (err) {
+      console.error("Lỗi khi đăng xuất:", err);
     } finally {
+      // Xóa cookie auth_token trên client
+      deleteCookie("auth_token");
       setShowDropdown(false);
-      router.push("/"); // Sau khi logout thì chuyển về trang chính
+      router.push("/");
     }
   };
 
-    useEffect(() => {
-      const fetchUserData = async () => {
-        try {
-          setIsLoading(true);
-          const response = await fetch(`http://localhost:8080/api/auth/me`, {
-            credentials: "include",
-          });
-  
-          if (!response.ok) {
-            throw new Error("Không thể lấy dữ liệu người dùng");
-          }
-  
-          const data = await response.json();
-          setUser(data);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : "Có lỗi xảy ra");
-          router.push("/");
-        } finally {
-          setIsLoading(false);
-        }
-      };
-  
-      fetchUserData();
-    }, [router]);
+  // Kiểm tra lỗi 401 và logout tự động
+  useEffect(() => {
+    if (error && error.message.includes("401")) {
+      deleteCookie("auth_token"); // Xóa cookie khi gặp lỗi 401
+      handleLogout();
+    }
+  }, [error]);
 
-    if (isLoading) {
-      return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
-    }
-  
-    if (error) {
-      return <div className="flex min-h-screen items-center justify-center text-red-500">{error}</div>;
-    }
-  
-    if (!user) {
-      return <div className="flex min-h-screen items-center justify-center text-red-500">Người dùng không tồn tại</div>;
-    }
+  if (isLoading) {
+    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="flex min-h-screen items-center justify-center text-red-500">{error.message}</div>;
+  }
+
+  if (!user) {
+    return <div className="flex min-h-screen items-center justify-center text-red-500">Người dùng không tồn tại</div>;
+  }
 
   return (
     <header className="fixed top-0 left-0 w-full h-14 z-50 bg-gray-900 px-6 py-2 flex items-center justify-between">
@@ -88,8 +69,10 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
         <Link
           href="/home"
           className={`flex items-center p-2 rounded-md ${
-            pathname === "/home" ? " text-blue-500" : "text-white"}`}>
-          <h1 className="text-3xl font-bold text-white">GoKu</h1>{" "}
+            pathname === "/home" ? " text-blue-500" : "text-white"
+          }`}
+        >
+          <h1 className="text-3xl font-bold text-white">GoKu</h1>
         </Link>
       </div>
 
@@ -107,7 +90,6 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
 
       {/* Center Section */}
       <div className="hidden md:flex space-x-6">
-        {/* Home */}
         <Link
           href="/home"
           className={`flex items-center p-2 rounded-md ${
@@ -116,7 +98,6 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
         >
           <Home className="h-6 w-6" />
         </Link>
-        {/* Friend */}
         <Link
           href="/friends"
           className={`flex items-center p-2 rounded-md ${
@@ -125,7 +106,6 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
         >
           <Users className="h-6 w-6" />
         </Link>
-        {/* Messages */}
         <Link
           href="/videos"
           className={`flex items-center p-2 rounded-md ${
@@ -134,7 +114,6 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
         >
           <Video className="h-6 w-6" />
         </Link>
-        {/* Groups */}
         <Link
           href="/groups"
           className={`flex items-center p-2 rounded-md ${
@@ -145,21 +124,18 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
         </Link>
       </div>
 
+      {/* Right Section */}
       <div className="flex items-center gap-4">
-        {" "}
-        {/* Right Section */}
-        <NotificationsDropdown />{" "}
+        <NotificationsDropdown />
         <div className="relative">
-          {" "}
-          {/* User Profile Dropdown */}
           <button
             onClick={() => setShowDropdown(!showDropdown)}
             className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-800"
           >
             <div className="relative h-9 w-9 overflow-hidden rounded-full border border-gray-700">
               <Image
-                src={user?.image || '/placeholder-user.jpg'}
-                alt={user?.firstName || "User"}
+                src={user.image || "/placeholder-user.jpg"}
+                alt={`${user.firstName} ${user.lastName}`}
                 width={36}
                 height={36}
                 className="h-full w-full object-cover"
@@ -205,4 +181,4 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
       </button>
     </header>
   );
-};
+}

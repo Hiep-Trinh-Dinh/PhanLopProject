@@ -1,5 +1,6 @@
 package com.example.server.services.impl;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -74,6 +75,7 @@ public class UserServiceImpl implements UserService{
         Optional.ofNullable(dto.getRelationshipStatus()).ifPresent(user::setRelationshipStatus);
         Optional.ofNullable(dto.getCurrentCity()).ifPresent(user::setCurrentCity);
         Optional.ofNullable(dto.getHometown()).ifPresent(user::setHometown);
+        Optional.ofNullable(LocalDateTime.now()).ifPresent(user::setUpdatedAt);
     
         // Xử lý Educations
         if (dto.getEducations() != null) {

@@ -7,7 +7,7 @@ public class UserUtil {
         return reqUser.getId().equals(user2.getId());
     }
 
-    public static final boolean isFollwingByReqUser(User reqUser, User user2){
+    public static final boolean isFollowingByReqUser(User reqUser, User user2){
         return reqUser.getFollowing().contains(user2);
     }
 

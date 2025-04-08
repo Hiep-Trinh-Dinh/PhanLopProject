@@ -5,22 +5,24 @@ import com.example.server.models.Post;
 import com.example.server.models.User;
 
 public class PostUtil {
-
-    public final static boolean isLikedByReqUser(User reqUser, Post post) {
+    public static boolean isLikedByReqUser(User reqUser, Post post) {
+        if (reqUser == null || post == null || post.getLikes() == null) {
+            return false;
+        }
         for (Like like : post.getLikes()) {
-            if (like.getUser().getId().equals(reqUser.getId())) {
+            if (like.getUser() != null && like.getUser().getId().equals(reqUser.getId())) {
                 return true;
             }
         }
         return false;
     }
 
-    public final static boolean isRepostedByReqUser(User reqUser, Post post) {
-        for (User user : post.getRepostUsers()) {
-            if (user.getId().equals(reqUser.getId())) {
-                return true;
-            }
+    // Phương thức bổ sung từ PostDtoMapper
+    public static boolean isRepostedByReqUser(User reqUser, Post post) {
+        if (reqUser == null || post == null || post.getRepostUsers() == null) {
+            return false;
         }
-        return false;
+        return post.getRepostUsers().stream()
+            .anyMatch(user -> user.getId().equals(reqUser.getId()));
     }
 }

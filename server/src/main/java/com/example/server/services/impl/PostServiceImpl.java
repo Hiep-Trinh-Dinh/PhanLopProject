@@ -1,17 +1,18 @@
 package com.example.server.services.impl;
 
-import java.util.List;
+import com.example.server.dto.PostDto;
+import com.example.server.mapper.PostDtoMapper;
+import com.example.server.models.Post;
+import com.example.server.models.User;
+import com.example.server.repositories.PostRepository;
+import com.example.server.repositories.UserRepository;
+import com.example.server.services.LikeService;
+import com.example.server.services.PostService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.example.server.exception.PostException;
-import com.example.server.exception.UserException;
-import com.example.server.models.Post;
-import com.example.server.models.User;
-import com.example.server.repositories.PostRepository;
-import com.example.server.requests.PostReplyRequest;
-import com.example.server.services.PostService;
+import java.util.List;
 
 @Service
 public class PostServiceImpl implements PostService {
@@ -19,86 +20,116 @@ public class PostServiceImpl implements PostService {
     @Autowired
     private PostRepository postRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private LikeService likeService;
+
     @Override
-    public Post createPost(Post req, User user) throws UserException {
+    public PostDto createPost(PostDto postDto, Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
         Post post = new Post();
-        post.setContent(req.getContent());
-        post.setCreatedAt(req.getCreatedAt());
-        post.setImage(req.getImage());
+        post.setContent(postDto.getContent());
         post.setUser(user);
-        post.setIsReply(false);
-        post.setIsPost(true);
-        post.setVideo(req.getVideo());
-
-        return postRepository.save(post);
-    }
-
-    @Override
-    public List<Post> findAllPosts() {
-        return postRepository.findAllByIsPostTrueOrderByCreatedAtDesc();
-    }
-
-    @Override
-    public Post rePost(Long postId, User user) throws UserException, PostException {
-        Post post = findById(postId);
-        if(post.getRepostUsers().contains(user)){
-            post.getRepostUsers().remove(user);
-        } else {
-            post.getRepostUsers().add(user);
-        }
-
-        return postRepository.save(post);
-    }
-
-    @Override
-    public Post findById(Long postId) throws PostException {
-        return postRepository.findById(postId).orElseThrow(() ->
-            new PostException("Không tìm thấy bài viết với id: " + postId)
-        );
-    }
-
-    @Override
-    public void deletePostById(Long postId, Long userId) throws PostException, UserException {
-        Post post = findById(postId);
-        if(!post.getUser().getId().equals(userId)){
-            throw new UserException("Không thể xóa bài viết của người khác");
-        }
-
-        postRepository.deleteById(post.getId());
-    }
-
-    @Override
-    public Post removeFromRepost(Long postId, User user) throws PostException, UserException {
-        throw new UnsupportedOperationException("Unimplemented method 'removeFromRepost'");
-    }
-
-    @Override
-    public Post createReply(PostReplyRequest req, User user) throws PostException {
-        Post replyFor = findById(req.getPostId());
-
-        Post post = new Post();
-        post.setContent(req.getContent());
-        post.setCreatedAt(req.getCreatedAt());
-        post.setImage(req.getImage());
-        post.setUser(user);
-        post.setIsReply(true);
-        post.setIsPost(false);
-        post.setReplyFor(replyFor);
-
+        post.setPrivacy(Post.Privacy.valueOf(postDto.getPrivacy()));
+        
         Post savedPost = postRepository.save(post);
-        replyFor.getReplyPosts().add(savedPost);
-        postRepository.save(replyFor);  
-
-        return replyFor;
+        return PostDtoMapper.toPostDto(savedPost, user);
     }
 
     @Override
-    public List<Post> getUserPosts(User user) {
-        return postRepository.findByRepostUsersContainingOrUser_IdAndIsPostTrueOrderByCreatedAtDesc(user, user.getId());
+    public PostDto getPostById(Long postId, Long reqUserId) {
+        Post post = postRepository.findById(postId)
+            .orElseThrow(() -> new RuntimeException("Post not found"));
+        
+        User reqUser = userRepository.findById(reqUserId)
+            .orElseThrow(() -> new RuntimeException("Requesting user not found"));
+        
+        return PostDtoMapper.toPostDtoWithDetails(post, reqUser);
     }
 
     @Override
-    public List<Post> getByLikesContainsUser(User user) {
-        return postRepository.findByLikesUserId(user.getId());
+    public List<PostDto> getAllPosts(Long reqUserId) {
+        User reqUser = userRepository.findById(reqUserId)
+            .orElseThrow(() -> new RuntimeException("Requesting user not found"));
+        
+        List<Post> posts = postRepository.findAll();
+        return PostDtoMapper.toPostDtos(posts, reqUser);
+    }
+
+    @Override
+    public PostDto updatePost(Long postId, PostDto postDto, Long userId) {
+        Post post = postRepository.findById(postId)
+            .orElseThrow(() -> new RuntimeException("Post not found"));
+        
+        if (!post.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Unauthorized");
+        }
+        
+        User reqUser = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        post.setContent(postDto.getContent());
+        post.setPrivacy(Post.Privacy.valueOf(postDto.getPrivacy()));
+        
+        Post updatedPost = postRepository.save(post);
+        return PostDtoMapper.toPostDto(updatedPost, reqUser);
+    }
+
+    @Override
+    public void deletePost(Long postId, Long userId) {
+        Post post = postRepository.findById(postId)
+            .orElseThrow(() -> new RuntimeException("Post not found"));
+        
+        if (!post.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Unauthorized");
+        }
+        
+        postRepository.delete(post);
+    }
+
+    @Override
+    public PostDto repostPost(Long postId, Long userId) {
+        Post post = postRepository.findById(postId)
+            .orElseThrow(() -> new RuntimeException("Post not found"));
+        
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        if (!post.getRepostUsers().contains(user)) {
+            post.getRepostUsers().add(user);
+            postRepository.save(post);
+        }
+        
+        return PostDtoMapper.toPostDto(post, user);
+    }
+
+    @Override
+    public PostDto likePost(Long postId, Long userId) {
+        Post post = postRepository.findById(postId)
+            .orElseThrow(() -> new RuntimeException("Post not found"));
+        
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        likeService.likePost(postId, userId); // Gọi LikeService
+        
+        return PostDtoMapper.toPostDto(post, user); // Trả về PostDto, không phải LikeDto
+    }
+
+    @Override
+    public PostDto unlikePost(Long postId, Long userId) {
+        Post post = postRepository.findById(postId)
+            .orElseThrow(() -> new RuntimeException("Post not found"));
+        
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        likeService.unlikePost(postId, userId); // Gọi LikeService
+        
+        return PostDtoMapper.toPostDto(post, user); // Trả về PostDto
     }
 }

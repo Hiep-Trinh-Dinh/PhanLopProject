@@ -110,7 +110,7 @@ public class UserController {
 
         UserDto userDto = UserDtoMapper.toUserDto(user);
         userDto.setIsRequestingUser(UserUtil.isReqUser(reqUser, user));
-        userDto.setFollowed(UserUtil.isFollwingByReqUser(reqUser, user));
+        userDto.setFollowed(UserUtil.isFollowingByReqUser(reqUser, user));
 
         return new ResponseEntity<>(userDto, HttpStatus.OK);
     }
@@ -133,7 +133,7 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        List<User> users = userService.seacrhUser(query); // Sửa typo: "seacrhUser" -> "searchUser"
+        List<User> users = userService.seacrhUser(query);
         List<UserDto> userDtos = UserDtoMapper.toUserDtos(users);
 
         // Đánh dấu các user đã follow bởi reqUser
@@ -143,7 +143,7 @@ public class UserController {
                 .findFirst()
                 .orElse(null);
             if (user != null) {
-                dto.setFollowed(UserUtil.isFollwingByReqUser(reqUser, user));
+                dto.setFollowed(UserUtil.isFollowingByReqUser(reqUser, user));
             }
         });
 
@@ -174,7 +174,7 @@ public class UserController {
         }
 
         UserDto userDto = UserDtoMapper.toUserDto(user);
-        userDto.setFollowed(UserUtil.isFollwingByReqUser(reqUser, user));
+        userDto.setFollowed(UserUtil.isFollowingByReqUser(reqUser, user));
 
         return new ResponseEntity<>(userDto, HttpStatus.OK);
     }

@@ -17,41 +17,36 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Post {
+public class Comment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
+    @Column(length = 20000)
+    private String content;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false)
     private User user;
 
-    @NotBlank
-    @Column(length = 30000)
-    private String content;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false)
+    private Post post;
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Comment> comments = new ArrayList<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Comment parentComment; // Null nếu là comment gốc
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Comment> replies = new ArrayList<>();
+
+    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Like> likes = new ArrayList<>();
 
     @ElementCollection
-    @CollectionTable(name = "post_media", joinColumns = @JoinColumn(name = "post_id"))
-    private List<PostMedia> media = new ArrayList<>();
-
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "post_reposts",
-        joinColumns = @JoinColumn(name = "post_id"),
-        inverseJoinColumns = @JoinColumn(name = "user_id")
-    )
-    private List<User> repostUsers = new ArrayList<>(); // Danh sách người dùng đã repost
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Privacy privacy = Privacy.PUBLIC;
+    @CollectionTable(name = "comment_media", joinColumns = @JoinColumn(name = "comment_id"))
+    private List<CommentMedia> media = new ArrayList<>();
 
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -59,13 +54,10 @@ public class Post {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    public enum Privacy {
-        PUBLIC, FRIENDS, ONLY_ME
-    }
-
+    // Embedded class cho media
     @Embeddable
     @Data
-    public static class PostMedia {
+    public static class CommentMedia {
         public enum MediaType { IMAGE, VIDEO }
         
         @Enumerated(EnumType.STRING)
@@ -73,7 +65,5 @@ public class Post {
         
         @Column(nullable = false)
         private String url;
-        
-        private LocalDateTime createdAt = LocalDateTime.now();
     }
 }

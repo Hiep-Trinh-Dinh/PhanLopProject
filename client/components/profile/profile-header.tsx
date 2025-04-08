@@ -1,10 +1,14 @@
 "use client";
 
-import Link from "next/link";
-import { Camera, MessageCircle, MoreHorizontal, UserPlus, Users, Pencil } from "lucide-react";
+import { Camera, Pencil } from "lucide-react";
 import { Avatar } from "../../components/ui/avatar";
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
+import { useUserData } from "../../app/api/auth/me/useUserData"; // Import hook useUserData
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
+interface ProfileAboutProps {
+  userId: number;
+}
 
 interface User {
   id: number;
@@ -20,44 +24,53 @@ interface User {
   isFriend?: boolean;
 }
 
-export default function ProfileHeader() {
-  const [user, setUser] = useState<User | null>(null);
+// Hàm cập nhật dữ liệu người dùng
+const updateUserData = async (data: User): Promise<User> => {
+  const response = await fetch("http://localhost:8080/api/users/update", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    credentials: "include",
+  });
+  if (!response.ok) throw new Error("Không thể cập nhật thông tin người dùng");
+  return response.json();
+};
+
+export default function ProfileHeader({ userId }: ProfileAboutProps) {
   const [editUser, setEditUser] = useState<User | null>(null);
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const router = useRouter();
   const profileImageInput = useRef<HTMLInputElement>(null);
   const backgroundImageInput = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+
+  // Sử dụng hook useUserData để lấy dữ liệu người dùng
+  const { userData: user, isLoading, error: fetchError } = useUserData(userId);
+
+  // Đồng bộ editUser với user khi dữ liệu thay đổi
+  useEffect(() => {
+    if (user && !isEditing) {
+      setEditUser(user ?? null);
+    }
+  }, [user, isEditing]);
 
   const CLOUDINARY_CLOUD_NAME = "dv30m7ogs";
   const CLOUDINARY_UPLOAD_PRESET = "Thời trang";
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch(`http://localhost:8080/api/auth/me`, {
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error("Không thể lấy dữ liệu người dùng");
-        }
-
-        const data = await response.json();
-        setUser(data);
-        setEditUser(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Có lỗi xảy ra");
-        router.push("/");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserData();
-  }, [router]);
+  // Mutation để cập nhật dữ liệu
+  const updateMutation = useMutation({
+    mutationFn: updateUserData,
+    onSuccess: (updatedUser) => {
+      queryClient.setQueryData(["userData", user?.id], updatedUser);
+      setEditUser(updatedUser);
+      setIsEditing(false);
+      setError("");
+      queryClient.invalidateQueries({ queryKey: ["userData", user?.id] });
+    },
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : "Có lỗi xảy ra khi lưu");
+    },
+  });
 
   const uploadImage = async (file: File): Promise<string> => {
     const formData = new FormData();
@@ -81,7 +94,10 @@ export default function ProfileHeader() {
     return data.secure_url;
   };
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, type: "image" | "backgroundImage") => {
+  const handleImageChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "image" | "backgroundImage"
+  ) => {
     const file = e.target.files?.[0];
     if (file) {
       try {
@@ -93,35 +109,13 @@ export default function ProfileHeader() {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!editUser) return;
-
-    try {
-      const response = await fetch("http://localhost:8080/api/users/update", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(editUser),
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("Không thể cập nhật thông tin người dùng");
-      }
-
-      const updatedUser = await response.json();
-      setUser(updatedUser);
-      setEditUser(updatedUser);
-      setIsEditing(false);
-      setError("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Có lỗi xảy ra khi lưu");
-    }
+    updateMutation.mutate(editUser);
   };
 
   const handleCancel = () => {
-    setEditUser(user);
+    setEditUser(user ?? null);
     setIsEditing(false);
     setError("");
   };
@@ -130,8 +124,12 @@ export default function ProfileHeader() {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
   }
 
-  if (error) {
-    return <div className="flex min-h-screen items-center justify-center text-red-500">{error}</div>;
+  if (fetchError || error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-red-500">
+        {fetchError?.toString() || error}
+      </div>
+    );
   }
 
   if (!user) {
@@ -170,7 +168,7 @@ export default function ProfileHeader() {
             )}
           </div>
         )}
-        
+
         {/* Nút Edit Profile (biểu tượng bút chì) ở góc trên bên phải */}
         {!isEditing && (
           <button
@@ -181,7 +179,7 @@ export default function ProfileHeader() {
             <Pencil size={20} />
           </button>
         )}
-        
+
         <input
           type="file"
           ref={backgroundImageInput}
@@ -222,18 +220,24 @@ export default function ProfileHeader() {
                 <input
                   type="text"
                   value={editUser?.firstName || ""}
-                  onChange={(e) => setEditUser(editUser ? { ...editUser, firstName: e.target.value } : null)}
+                  onChange={(e) =>
+                    setEditUser(editUser ? { ...editUser, firstName: e.target.value } : null)
+                  }
                   className="text-xl font-bold sm:text-2xl bg-gray-800 text-white p-1 rounded"
                 />
                 <input
                   type="text"
                   value={editUser?.lastName || ""}
-                  onChange={(e) => setEditUser(editUser ? { ...editUser, lastName: e.target.value } : null)}
+                  onChange={(e) =>
+                    setEditUser(editUser ? { ...editUser, lastName: e.target.value } : null)
+                  }
                   className="text-xl font-bold sm:text-2xl bg-gray-800 text-white p-1 rounded ml-2"
                 />
                 <textarea
                   value={editUser?.bio || ""}
-                  onChange={(e) => setEditUser(editUser ? { ...editUser, bio: e.target.value } : null)}
+                  onChange={(e) =>
+                    setEditUser(editUser ? { ...editUser, bio: e.target.value } : null)
+                  }
                   className="w-full text-sm text-muted-foreground sm:text-base bg-gray-800 text-white p-1 rounded"
                   rows={2}
                 />
@@ -241,8 +245,9 @@ export default function ProfileHeader() {
                   <button
                     onClick={handleSave}
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    disabled={updateMutation.isPending}
                   >
-                    Save
+                    {updateMutation.isPending ? "Saving..." : "Save"}
                   </button>
                   <button
                     onClick={handleCancel}

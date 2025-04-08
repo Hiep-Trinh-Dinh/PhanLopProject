@@ -1,52 +1,191 @@
 package com.example.server.controllers;
 
-import java.util.List;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
+import com.example.server.config.JwtProvider;
 import com.example.server.dto.LikeDto;
-import com.example.server.exception.PostException;
 import com.example.server.exception.UserException;
-import com.example.server.mapper.LikeDtoMapper;
-import com.example.server.models.Like;
 import com.example.server.models.User;
 import com.example.server.services.LikeService;
 import com.example.server.services.UserService;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/likes")
 public class LikeController {
-    
-    @Autowired
-    private UserService userService;
 
     @Autowired
     private LikeService likeService;
 
-    @PostMapping("{twitId}/likes")
-    public ResponseEntity<LikeDto> likeTwit(@PathVariable Long twitId, @RequestHeader("Authorization") String jwt) throws UserException, PostException {
-        User user = userService.findUserProfileByJwt(jwt);
-        Like like = likeService.likePost(user, twitId);
+    @Autowired
+    private JwtProvider jwtProvider;
 
-        LikeDto likeDto = LikeDtoMapper.toLikeDto(like, user);
+    @Autowired
+    private UserService userService;
 
-        return new ResponseEntity<LikeDto>(likeDto, HttpStatus.CREATED);
+    @Value("${app.secure:true}")
+    private boolean secureCookie;
+
+    private static final String COOKIE_NAME = "auth_token";
+
+    private void clearJwtCookie(HttpServletResponse response) {
+        Cookie cookie = new Cookie(COOKIE_NAME, "");
+        cookie.setHttpOnly(true);
+        cookie.setSecure(secureCookie);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        cookie.setAttribute("SameSite", "Strict");
+        response.addCookie(cookie);
     }
 
-    @PostMapping("/twit/{twitId}")
-    public ResponseEntity<List<LikeDto>> getAllLike(@PathVariable Long twitId, @RequestHeader("Authorization") String jwt) throws UserException, PostException {
-        User user = userService.findUserProfileByJwt(jwt);
-        List<Like> likes = likeService.getAllLikes(twitId);
+    @PostMapping("/post/{postId}")
+    public ResponseEntity<LikeDto> likePost(
+            @PathVariable Long postId,
+            @CookieValue(name = COOKIE_NAME, required = false) String token,
+            HttpServletResponse response) throws UserException {
+        if (token == null || !jwtProvider.validateToken(token)) {
+            clearJwtCookie(response);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
-        List<LikeDto> likeDtos = LikeDtoMapper.toLikeDtos(likes, user);
+        User reqUser = userService.findUserProfileByJwt(token);
+        if (reqUser == null) {
+            clearJwtCookie(response);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
-        return new ResponseEntity<>(likeDtos, HttpStatus.CREATED);
+        try {
+            LikeDto likeDto = likeService.likePost(postId, reqUser.getId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(likeDto);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
+
+    @PostMapping("/comment/{commentId}")
+    public ResponseEntity<LikeDto> likeComment(
+            @PathVariable Long commentId,
+            @CookieValue(name = COOKIE_NAME, required = false) String token,
+            HttpServletResponse response) throws UserException {
+        if (token == null || !jwtProvider.validateToken(token)) {
+            clearJwtCookie(response);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        User reqUser = userService.findUserProfileByJwt(token);
+        if (reqUser == null) {
+            clearJwtCookie(response);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            LikeDto likeDto = likeService.likeComment(commentId, reqUser.getId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(likeDto);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
+
+    @DeleteMapping("/post/{postId}")
+    public ResponseEntity<Void> unlikePost(
+            @PathVariable Long postId,
+            @CookieValue(name = COOKIE_NAME, required = false) String token,
+            HttpServletResponse response) throws UserException {
+        if (token == null || !jwtProvider.validateToken(token)) {
+            clearJwtCookie(response);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        User reqUser = userService.findUserProfileByJwt(token);
+        if (reqUser == null) {
+            clearJwtCookie(response);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            likeService.unlikePost(postId, reqUser.getId());
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
+
+    @DeleteMapping("/comment/{commentId}")
+    public ResponseEntity<Void> unlikeComment(
+            @PathVariable Long commentId,
+            @CookieValue(name = COOKIE_NAME, required = false) String token,
+            HttpServletResponse response) throws UserException {
+        if (token == null || !jwtProvider.validateToken(token)) {
+            clearJwtCookie(response);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        User reqUser = userService.findUserProfileByJwt(token);
+        if (reqUser == null) {
+            clearJwtCookie(response);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            likeService.unlikeComment(commentId, reqUser.getId());
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
+
+    @GetMapping("/post/{postId}")
+    public ResponseEntity<List<LikeDto>> getLikesByPostId(
+            @PathVariable Long postId,
+            @CookieValue(name = COOKIE_NAME, required = false) String token,
+            HttpServletResponse response) throws UserException {
+        if (token == null || !jwtProvider.validateToken(token)) {
+            clearJwtCookie(response);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        User reqUser = userService.findUserProfileByJwt(token);
+        if (reqUser == null) {
+            clearJwtCookie(response);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            List<LikeDto> likes = likeService.getLikesByPostId(postId, reqUser.getId());
+            return ResponseEntity.ok(likes);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+
+    @GetMapping("/comment/{commentId}")
+    public ResponseEntity<List<LikeDto>> getLikesByCommentId(
+            @PathVariable Long commentId,
+            @CookieValue(name = COOKIE_NAME, required = false) String token,
+            HttpServletResponse response) throws UserException {
+        if (token == null || !jwtProvider.validateToken(token)) {
+            clearJwtCookie(response);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        User reqUser = userService.findUserProfileByJwt(token);
+        if (reqUser == null) {
+            clearJwtCookie(response);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            List<LikeDto> likes = likeService.getLikesByCommentId(commentId, reqUser.getId());
+            return ResponseEntity.ok(likes);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
 }

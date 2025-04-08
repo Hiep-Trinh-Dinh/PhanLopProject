@@ -1,15 +1,18 @@
 package com.example.server.services;
 
 import java.util.List;
-
-import com.example.server.exception.PostException;
-import com.example.server.exception.UserException;
-import com.example.server.models.Like;
-import com.example.server.models.User;
+import com.example.server.dto.LikeDto;
 
 public interface LikeService {
+    LikeDto likePost(Long postId, Long userId);
     
-    public Like likePost(User user, Long twitId) throws UserException, PostException;
-
-    public List<Like> getAllLikes(Long twitId) throws PostException;
+    LikeDto likeComment(Long commentId, Long userId);
+    
+    void unlikePost(Long postId, Long userId);
+    
+    void unlikeComment(Long commentId, Long userId);
+    
+    List<LikeDto> getLikesByPostId(Long postId, Long reqUserId);
+    
+    List<LikeDto> getLikesByCommentId(Long commentId, Long reqUserId);
 }
