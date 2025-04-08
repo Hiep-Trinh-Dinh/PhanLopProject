@@ -1,44 +1,65 @@
 package com.example.server.models;
 
-import jakarta.persistence.*;
-import lombok.Data;
 import java.time.LocalDateTime;
-import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
-@Data
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 @Entity
+@Data
 @Table(name = "users")
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Thông tin cơ bản
-    @Column(unique = true, nullable = false)
-    private String username;
-
-    @Column(unique = true, nullable = false)
+    private String firstName;
+    private String lastName;
+    private String location;
+    private String website;
+    private String phone;
     private String email;
+    private String birthDate;
 
-    @Column(nullable = false)
+    @JsonIgnore
     private String password;
+    
+    private String image;
+    private String bio;
+    private String backgroundImage;
 
-    @Column(nullable = false)
-    private String name;
+    private String email_contact;
+    private String phone_contact;
 
-    // Thông tin cá nhân
-    @Column(name = "date_of_birth")
-    private String dateOfBirth;
+    private Boolean isRequestingUser = false;
+    private Boolean login_with_Google = false;
 
     @Enumerated(EnumType.STRING)
     private Gender gender;
-
-    // Thông tin profile
-    private String avatar;
-    private String cover;
-    private String bio;
-    private String location;
-    private String phone;
 
     // Trạng thái tài khoản
     @Column(name = "is_online")
@@ -47,8 +68,8 @@ public class User {
     @Column(name = "last_seen")
     private LocalDateTime lastSeen;
 
-    @Column(name = "is_verified")
-    private Boolean isVerified = false;
+    @Column(name = "is_email_verified")
+    private Boolean isEmailVerified = false;
 
     @Column(name = "is_active")
     private Boolean isActive = true;
@@ -60,30 +81,7 @@ public class User {
     @Column(name = "reset_password_expires")
     private LocalDateTime resetPasswordExpires;
 
-    @Column(name = "is_email_verified")
-    private Boolean isEmailVerified = false;
-
-    // Thông tin cá nhân
-    @Column(name = "relationship_status")
-    @Enumerated(EnumType.STRING)
-    private RelationshipStatus relationshipStatus;
-
-    @Column(name = "hometown")
-    private String hometown;
-
-    @Column(name = "work_place")
-    private String workPlace;
-
-    @Column(name = "education")
-    private String education;
-
     // Thống kê
-    @Column(name = "following_count")
-    private Integer followingCount = 0;
-
-    @Column(name = "followers_count")
-    private Integer followersCount = 0;
-
     @Column(name = "posts_count")
     private Integer postsCount = 0;
 
@@ -94,14 +92,29 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public enum RelationshipStatus {
-        SINGLE, IN_RELATIONSHIP, MARRIED, COMPLICATED
-    }
-
     public enum Gender {
-        MALE,
-        FEMALE,
-        OTHER
+        MALE("male"),
+        FEMALE("female"), 
+        OTHER("custom");
+
+        private final String frontendValue;
+
+        Gender(String frontendValue) {
+            this.frontendValue = frontendValue;
+        }
+
+        public String getFrontendValue() {
+            return frontendValue;
+        }
+
+        public static Gender fromFrontendValue(String value) {
+            for (Gender gender : values()) {
+                if (gender.frontendValue.equalsIgnoreCase(value)) {
+                    return gender;
+                }
+            }
+            throw new IllegalArgumentException("Invalid gender value: " + value);
+        }
     }
 
     @PrePersist
@@ -114,4 +127,38 @@ public class User {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-} 
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Post> posts = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Like> likes = new ArrayList<>();
+
+    @OneToOne(cascade = CascadeType.ALL)
+    private Verification verification;
+
+    @ManyToMany
+    @JoinTable(
+        name = "user_followers",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "follower_id")
+    )
+    private List<User> followers;
+
+    @JsonIgnore
+    @ManyToMany
+    private List<User> following = new ArrayList<>();
+
+    // Work & Education
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<WorkExperience> workExperiences = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Education> educations = new ArrayList<>();
+
+    private String currentCity;
+    private String hometown;
+
+    private String relationshipStatus;
+}

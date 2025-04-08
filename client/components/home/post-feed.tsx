@@ -106,8 +106,16 @@ const CommentSection = ({ isActive, commentText, onCommentChange, onSubmit }: Co
   return (
     <div className="mt-3 flex items-start space-x-2">
       <div className="relative h-8 w-8 overflow-hidden rounded-full">
-        <img src="/placeholder-user.jpg" alt="Your avatar" className="h-full w-full object-cover" />
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">U</div>
+        <Image 
+          src="/placeholder-user.jpg" 
+          alt="Your avatar"
+          width={32}
+          height={32}
+          className="h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">
+          U
+        </div>
       </div>
       <div className="flex-1">
         <textarea
@@ -179,7 +187,13 @@ export default function PostFeed() {
           <div className="flex items-start justify-between space-y-0 p-4">
             <div className="flex items-center space-x-3">
               <div className="relative h-10 w-10 overflow-hidden rounded-full">
-                <img src={post.user.avatar} alt={post.user.name} className="h-full w-full object-cover" />
+                <Image 
+                  src={post.user.avatar || '/placeholder-user.jpg'} 
+                  alt={post.user.name}
+                  width={40}
+                  height={40}
+                  className="h-full w-full object-cover"
+                />
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">
                   {post.user.name.charAt(0)}
                 </div>

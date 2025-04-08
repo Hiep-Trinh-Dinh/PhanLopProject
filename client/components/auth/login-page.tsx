@@ -1,49 +1,102 @@
 "use client";
 
-import type React from "react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
-import Cookies from 'js-cookie';
-import { loginUser } from '@/utils/api';
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mounted, setMounted] = useState(false);
-  const [error, setError] = useState<string>('');
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
+  // Kiểm tra trạng thái đăng nhập khi trang load
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("http://localhost:8080/api/auth/me", {
+          method: "GET",
+          credentials: "include", // Gửi cookie
+        });
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError('');
-    setLoading(true);
+        if (response.ok) {
+          router.push("/home");
+          router.refresh(); // Đảm bảo dữ liệu mới được tải
+        }
+      } catch (error) {
+        console.log("User not authenticated yet:", error);
+      }
+    };
 
-    try {
-      const data = await loginUser(username, password);
-      
-      // Lưu token vào cookie
-      Cookies.set('token', data.token, { expires: 7 });
-      
-      // Chuyển hướng đến trang home
-      router.push('/home');
-    } catch (error) {
-      setError('Invalid username or password');
-    } finally {
-      setLoading(false);
+    checkAuth();
+
+    // Tắt autocomplete
+    const timer = setTimeout(() => {
+      document.getElementById("email")?.setAttribute("autocomplete", "off");
+      document.getElementById("password")?.setAttribute("autocomplete", "new-password");
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [router]);
+
+  const validateForm = () => {
+    if (!email) {
+      setError("Email không được để trống");
+      return false;
     }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Email không hợp lệ");
+      return false;
+    }
+
+    if (!password) {
+      setError("Mật khẩu không được để trống");
+      return false;
+    }
+
+    return true;
   };
 
-  if (!mounted) {
-    return null;
-  }
+  const handleSubmit = async (e: { preventDefault: () => void; }) => {
+    e.preventDefault();
+  
+    if (!validateForm()) return;
+  
+    setError("");
+    setIsLoading(true);
+  
+    try {
+      const response = await fetch("http://localhost:8080/api/auth/signin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+        credentials: "include",
+      });
+  
+      console.log("Signin response status:", response.status); // Debug
+      const data = await response.json();
+      console.log("Signin response data:", data); // Debug
+  
+      if (!response.ok) {
+        throw new Error(data.message || "Đăng nhập thất bại");
+      }
+  
+      router.push("/home");
+      router.refresh();
+    } catch (err:any) {
+      console.error("Signin error:", err);
+      setError(err.message || "Đăng nhập thất bại");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-black p-4 overflow-hidden">
@@ -70,109 +123,95 @@ export default function LoginPage() {
           <div className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="text-red-500 text-sm text-center">{error}</div>
+                <div className="text-red-500 text-center p-2 rounded bg-red-900/50">
+                  {error}
+                </div>
               )}
 
-              {/* Username */}
               <div className="relative w-full">
                 <input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500"
-                  autoComplete="off"
+                  disabled={isLoading}
+                  className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500 disabled:opacity-50"
                 />
                 <label
-                  htmlFor="username"
+                  htmlFor="email"
                   className={`absolute left-2 ${
-                    username
-                      ? "top-0 text-blue-500 text-sm"
-                      : "top-5 text-gray-400 text-sm"
+                    email ? "top-0 text-blue-500 text-sm" : "top-5 text-gray-400 text-sm"
                   } transition-all peer-focus:top-0 peer-focus:text-blue-500 peer-focus:text-sm select-none pointer-events-none`}
                 >
-                  Username
+                  Email
                 </label>
               </div>
 
-              {/* Password */}
-              <div className="space-y-2">
-                <div className="relative w-full">
-                  <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500 hide-password-eye"
-                    autoComplete="new-password"
-                  />
-                  <label
-                    htmlFor="password"
-                    className={`absolute left-2 ${
-                      password
-                        ? "top-0 text-blue-500 text-sm"
-                        : "top-5 text-gray-400 text-sm"
-                    } transition-all peer-focus:top-0 peer-focus:text-blue-500 peer-focus:text-sm select-none pointer-events-none`}
-                  >
-                    Password
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute items-center right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  >
-                    {showPassword ? <EyeOff size={25} /> : <Eye size={25} />}
-                  </button>
-                </div>
+              <div className="relative w-full">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                />
+                <label
+                  htmlFor="password"
+                  className={`absolute left-2 ${
+                    password ? "top-0 text-blue-500 text-sm" : "top-5 text-gray-400 text-sm"
+                  } transition-all peer-focus:top-0 peer-focus:text-blue-500 peer-focus:text-sm select-none pointer-events-none`}
+                >
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 disabled:opacity-50"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
 
-              {/* Remember */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
                     id="remember"
-                    className="h-4 w-4 rounded border-gray-700 bg-gray-800"
+                    disabled={isLoading}
+                    className="h-4 w-4 rounded border-gray-700 bg-gray-800 disabled:opacity-50"
                   />
-                  <label
-                    htmlFor="remember"
-                    className="text-sm text-gray-300 select-none"
-                  >
+                  <label htmlFor="remember" className="text-sm text-gray-300 select-none">
                     Remember me
                   </label>
                 </div>
-                <Link
-                  href="/forgot-password"
-                  className="text-sm text-blue-400 hover:underline select-none"
-                >
+                <Link href="/forgot-password" className="text-sm text-blue-400 hover:underline">
                   Forgot password?
                 </Link>
               </div>
 
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                disabled={isLoading}
+                className={`w-full rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  isLoading ? "bg-blue-700 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                }`}
               >
-                {loading ? 'Logging in...' : 'Log In'}
+                {isLoading ? "Processing..." : "Log In"}
               </button>
             </form>
           </div>
 
-          <div className="border-t border-gray-800 bg-gray-900 p-6">
-            <div className="text-center text-sm text-gray-400">
-              <p className="text-lg select-none">
-                Don&apos;t have an account?{" "}
-                <Link
-                  href="/register"
-                  className="text-lg text-blue-400 hover:underline"
-                >
-                  Sign Up
-                </Link>
-              </p>
-            </div>
+          <div className="border-t border-gray-800 p-6 text-center">
+            <p className="text-gray-400">
+              Don&apos;t have an account?{" "}
+              <Link href="/register" className="text-blue-400 hover:underline">
+                Sign Up
+              </Link>
+            </p>
           </div>
         </div>
       </div>

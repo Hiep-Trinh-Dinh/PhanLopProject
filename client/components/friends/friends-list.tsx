@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { MessageCircle, Search, UserMinus } from "lucide-react"
 
 const mockFriends = [
@@ -52,6 +53,11 @@ const mockFriends = [
 export default function FriendsList() {
   const [friends, setFriends] = useState(mockFriends)
   const [searchQuery, setSearchQuery] = useState("")
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const filteredFriends = friends.filter((friend) => 
     friend.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -59,6 +65,10 @@ export default function FriendsList() {
 
   const removeFriend = (friendId: number) => {
     setFriends(friends.filter((friend) => friend.id !== friendId))
+  }
+
+  if (!mounted) {
+    return null // or a loading skeleton
   }
 
   return (
@@ -88,9 +98,11 @@ export default function FriendsList() {
             >
               <div className="flex items-center space-x-3">
                 <div className="relative h-12 w-12 overflow-hidden rounded-full">
-                  <img
+                  <Image
                     src={friend.avatar}
                     alt={friend.name}
+                    width={48}
+                    height={48}
                     className="h-full w-full object-cover"
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">

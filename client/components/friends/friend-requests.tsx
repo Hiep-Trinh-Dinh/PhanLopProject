@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Check, X } from "lucide-react"
 
 const mockFriendRequests = [
@@ -23,6 +24,11 @@ const mockFriendRequests = [
 
 export default function FriendRequests() {
   const [friendRequests, setFriendRequests] = useState(mockFriendRequests)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const acceptRequest = (requestId: number) => {
     setFriendRequests(friendRequests.filter((request) => request.id !== requestId))
@@ -30,6 +36,10 @@ export default function FriendRequests() {
 
   const rejectRequest = (requestId: number) => {
     setFriendRequests(friendRequests.filter((request) => request.id !== requestId))
+  }
+
+  if (!mounted) {
+    return null
   }
 
   if (friendRequests.length === 0) {
@@ -65,9 +75,11 @@ export default function FriendRequests() {
             >
               <div className="flex items-center space-x-3">
                 <div className="relative h-10 w-10 overflow-hidden rounded-full">
-                  <img
+                  <Image
                     src={request.avatar}
                     alt={request.name}
+                    width={40}
+                    height={40}
                     className="h-full w-full object-cover"
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">

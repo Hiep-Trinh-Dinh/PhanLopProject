@@ -2,7 +2,8 @@
 
 import type React from "react"
 import { useState } from "react"
-import { Camera, Image, Smile, Video } from "lucide-react"
+import Image from "next/image"
+import { Camera, Image as ImageIcon, Smile, Video } from "lucide-react"
 
 export default function CreatePostCard() {
   const [postText, setPostText] = useState("")
@@ -20,7 +21,13 @@ export default function CreatePostCard() {
         <div className="space-y-4 p-4">
           <div className="flex gap-3">
             <div className="relative h-10 w-10 overflow-hidden rounded-full">
-              <img src="/placeholder-user.jpg" alt="User" className="h-full w-full object-cover" />
+              <Image 
+                src="/placeholder-user.jpg" 
+                alt="User" 
+                width={40}
+                height={40}
+                className="h-full w-full object-cover"
+              />
               <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">
                 U
               </div>
@@ -40,7 +47,7 @@ export default function CreatePostCard() {
                 type="button"
                 className="inline-flex items-center rounded-md px-3 py-1.5 text-sm text-gray-400 hover:bg-gray-800"
               >
-                <Image className="mr-1 h-5 w-5" />
+                <ImageIcon className="mr-1 h-5 w-5" />
                 <span>Photo</span>
               </button>
               <button

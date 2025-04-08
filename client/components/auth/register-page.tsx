@@ -1,31 +1,26 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
-import { registerUser } from '@/utils/api';
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mounted, setMounted] = useState(false);
+  const [day, setDay] = useState("");
+  const [month, setMonth] = useState("");
+  const [year, setYear] = useState("");
+  const [gender, setGender] = useState("");
+  const [error, setError] = useState("");
   const router = useRouter();
-  const formRef = useRef<HTMLDivElement | null>(null);
-  const [error, setError] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [day, setDay] = useState('');
-  const [month, setMonth] = useState('');
-  const [year, setYear] = useState('');
-  const [gender, setGender] = useState('');
 
+  const formRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    setMounted(true);
     const timeout = setTimeout(() => {
       if (formRef.current) {
         const targetPosition =
@@ -42,48 +37,56 @@ export default function RegisterPage() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError('');
-    setLoading(true);
+    setError("");
 
-    // Validate date
-    if (!day || !month || !year) {
-      setError('Please select your date of birth');
-      setLoading(false);
+    // Kiểm tra firstName và lastName
+    if (!firstName || !lastName) {
+      setError("Vui lòng nhập họ và tên.");
       return;
     }
 
-    // Validate gender
+    // Kiểm tra giới tính
     if (!gender) {
-      setError('Please select your gender');
-      setLoading(false);
+      setError("Vui lòng chọn giới tính.");
       return;
     }
+
+    // Kiểm tra ngày sinh
+    if (!day || !month || !year) {
+      setError("Vui lòng chọn ngày sinh đầy đủ.");
+      return;
+    }
+    const birthDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 
     try {
-      const dateOfBirth = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-      const fullName = `${firstName} ${lastName}`;
-
-      await registerUser({
-        username,
-        email,
-        password,
-        name: fullName,
-        dateOfBirth,
-        gender,
+      const response = await fetch("http://localhost:8080/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          firstName,
+          lastName,
+          birthDate,
+          gender,
+        }),
       });
 
-      // Chuyển hướng đến trang login
-      router.push('/login');
-    } catch (error) {
-      setError('Registration failed. Please try again.');
-    } finally {
-      setLoading(false);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Đăng ký thất bại!");
+      }
+
+      console.log("Đăng ký thành công:", data);
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+    } catch (err: any) {
+      setError(err.message);
+      console.error("Lỗi đăng ký:", err);
     }
   };
-
-  if (!mounted) {
-    return null;
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-black p-4">
@@ -113,8 +116,9 @@ export default function RegisterPage() {
           <div className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="text-red-500 text-sm text-center">{error}</div>
+                <div className="text-red-500 text-center">{error}</div>
               )}
+
               <div className="grid grid-cols-2 gap-4">
                 {/* Firstname */}
                 <div className="relative w-full">
@@ -123,9 +127,9 @@ export default function RegisterPage() {
                     type="text"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
+                    onFocus={(e) => e.target.removeAttribute("readonly")}
                     required
                     className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500"
-                    autoComplete="given-name"
                   />
                   <label
                     htmlFor="firstName"
@@ -145,13 +149,13 @@ export default function RegisterPage() {
                     id="lastName"
                     type="text"
                     value={lastName}
+                    onFocus={(e) => e.target.removeAttribute("readonly")}
                     onChange={(e) => setLastName(e.target.value)}
                     required
                     className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500"
-                    autoComplete="family-name"
                   />
                   <label
-                    htmlFor="lastname"
+                    htmlFor="lastName"
                     className={`absolute left-2 ${
                       lastName
                         ? "top-0 text-blue-500 text-sm"
@@ -159,31 +163,6 @@ export default function RegisterPage() {
                     } transition-all peer-focus:top-0 peer-focus:text-blue-500 peer-focus:text-sm select-none pointer-events-none`}
                   >
                     Last name
-                  </label>
-                </div>
-              </div>
-
-              {/* Username */}
-              <div className="space-y-2">
-                <div className="relative w-full">
-                  <input
-                    id="username"
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                    className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500"
-                    autoComplete="username"
-                  />
-                  <label
-                    htmlFor="username"
-                    className={`absolute left-2 ${
-                      username
-                        ? "top-0 text-blue-500 text-sm"
-                        : "top-5 text-gray-400 text-sm"
-                    } transition-all peer-focus:top-0 peer-focus:text-blue-500 peer-focus:text-sm select-none pointer-events-none`}
-                  >
-                    Username
                   </label>
                 </div>
               </div>
@@ -196,9 +175,10 @@ export default function RegisterPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onFocus={(e) => e.target.removeAttribute("readonly")}
                     required
+                    readOnly
                     className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500"
-                    autoComplete="email"
                   />
                   <label
                     htmlFor="email"
@@ -221,10 +201,11 @@ export default function RegisterPage() {
                     name="password"
                     type={showPassword ? "text" : "password"}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
                     required
+                    readOnly
+                    onFocus={(e) => e.target.removeAttribute("readonly")}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500 hide-password-eye"
-                    autoComplete="new-password"
                   />
                   <label
                     htmlFor="password"
@@ -246,7 +227,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/*Your Birthday */}
+              {/* Your Birthday */}
               <div className="space-y-2">
                 <label
                   htmlFor="birthday"
@@ -256,10 +237,10 @@ export default function RegisterPage() {
                 </label>
                 <div className="flex gap-4">
                   {/* Day */}
-                  <select 
+                  <select
                     value={day}
                     onChange={(e) => setDay(e.target.value)}
-                    className="w-1/3 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white"
+                    className="w-1/3 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Day</option>
                     {Array.from({ length: 31 }, (_, i) => (
@@ -269,10 +250,10 @@ export default function RegisterPage() {
                     ))}
                   </select>
                   {/* Month */}
-                  <select 
+                  <select
                     value={month}
                     onChange={(e) => setMonth(e.target.value)}
-                    className="w-1/3 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white"
+                    className="w-1/3 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Month</option>
                     {[
@@ -295,10 +276,10 @@ export default function RegisterPage() {
                     ))}
                   </select>
                   {/* Year */}
-                  <select 
+                  <select
                     value={year}
                     onChange={(e) => setYear(e.target.value)}
-                    className="w-1/3 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white"
+                    className="w-1/3 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Year</option>
                     {Array.from({ length: 100 }, (_, i) => (
@@ -315,14 +296,13 @@ export default function RegisterPage() {
                 <label className="text-lg ml-3 mt-1 text-gray-300 select-none pointer-events-none">
                   Gender:
                 </label>
-                {/* Gender Options */}
                 {/* Male */}
                 <label className="flex items-center space-x-2 rounded-md border border-gray-700 px-3 py-2 cursor-pointer hover:border-gray-500 focus-within:ring-2 focus-within:ring-blue-500">
                   <input
                     type="radio"
                     id="male"
                     name="gender"
-                    value="MALE"
+                    value="male"
                     onChange={(e) => setGender(e.target.value)}
                     className="h-4 w-4 accent-blue-500"
                   />
@@ -336,7 +316,7 @@ export default function RegisterPage() {
                     type="radio"
                     id="female"
                     name="gender"
-                    value="FEMALE"
+                    value="female"
                     onChange={(e) => setGender(e.target.value)}
                     className="h-4 w-4 accent-pink-500"
                   />
@@ -350,9 +330,9 @@ export default function RegisterPage() {
                     type="radio"
                     id="custom"
                     name="gender"
-                    value="CUSTOM"
+                    value="custom"
                     onChange={(e) => setGender(e.target.value)}
-                    className="h-4 w-4 accent-green-500 "
+                    className="h-4 w-4 accent-green-500"
                   />
                   <span className="text-sm text-gray-300 select-none pointer-events-none">
                     Custom
@@ -387,20 +367,22 @@ export default function RegisterPage() {
 
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {loading ? 'Signing up...' : 'Sign Up'}
+                Sign Up
               </button>
             </form>
           </div>
 
-          <div className="border-t border-gray-800 bg-gray-900 p-3">
+          <div
+            ref={formRef}
+            className="border-t border-gray-800 bg-gray-900 p-3"
+          >
             <div className="text-center text-gray-400">
               <p className="text-lg p-1 select-none pointer-events-none">
                 Already have an account?{" "}
                 <Link
-                  href="/login"
+                  href="/"
                   className="text-lg text-blue-400 hover:underline select-text pointer-events-auto"
                 >
                   Log In

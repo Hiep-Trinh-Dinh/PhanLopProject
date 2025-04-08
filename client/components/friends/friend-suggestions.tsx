@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { UserPlus } from "lucide-react"
 
 const mockFriendSuggestions = [
@@ -30,9 +31,18 @@ const mockFriendSuggestions = [
 
 export default function FriendSuggestions() {
   const [friendSuggestions, setFriendSuggestions] = useState(mockFriendSuggestions)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const addFriend = (suggestionId: number) => {
     setFriendSuggestions(friendSuggestions.filter((suggestion) => suggestion.id !== suggestionId))
+  }
+
+  if (!mounted) {
+    return null // or a loading skeleton
   }
 
   return (
@@ -51,9 +61,11 @@ export default function FriendSuggestions() {
             >
               <div className="flex items-center space-x-3">
                 <div className="relative h-10 w-10 overflow-hidden rounded-full">
-                  <img
+                  <Image
                     src={suggestion.avatar}
                     alt={suggestion.name}
+                    width={40}
+                    height={40}
                     className="h-full w-full object-cover"
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white">

@@ -1,57 +1,56 @@
 package com.example.server.models;
 
-import jakarta.persistence.*;
-import lombok.Data;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
-@Data
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 @Entity
-@Table(name = "posts")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Post {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(columnDefinition = "TEXT")
     private String content;
 
-    @Column(columnDefinition = "JSON")
-    private String comments;
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL)
+    private List<Like> likes = new ArrayList<>();
 
-    @Enumerated(EnumType.STRING)
-    private Privacy privacy = Privacy.PUBLIC;
+    @OneToMany
+    private List<Post> replyPosts = new ArrayList<>();
 
-    @Column(name = "like_count")
-    private Integer likeCount = 0;
-
-    @Column(name = "comment_count")
-    private Integer commentCount = 0;
-
-    @Column(name = "share_count")
-    private Integer shareCount = 0;
-
-    @Column(name = "view_count")
-    private Integer viewCount = 0;
+    @ManyToMany
+    private List<User> repostUsers = new ArrayList<>();
 
     @ElementCollection
     @CollectionTable(name = "post_media")
     private List<PostMedia> media = new ArrayList<>();
-
-    @ElementCollection
-    @CollectionTable(name = "post_likes")
-    private List<PostLike> likes = new ArrayList<>();
-
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 
     @Embeddable
     @Data
@@ -76,25 +75,19 @@ public class Post {
         }
     }
 
-    @Embeddable
-    @Data
-    public static class PostLike {
-        @ManyToOne
-        @JoinColumn(name = "user_id", nullable = false)
-        private User user;
+    @ManyToOne
+    private Post replyFor;
 
-        @Column(name = "created_at")
-        private LocalDateTime createdAt;
+    private String image;
+    private String video;
 
-        @PrePersist
-        protected void onCreate() {
-            createdAt = LocalDateTime.now();
-        }
-    }
+    private Boolean isPost;
+    private Boolean isReply;
 
-    public enum Privacy {
-        PUBLIC, FRIENDS, PRIVATE
-    }
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     @PrePersist
     protected void onCreate() {
@@ -106,4 +99,4 @@ public class Post {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-} 
+}

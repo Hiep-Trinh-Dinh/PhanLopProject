@@ -1,39 +1,85 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { Group, Home, Users, Video, User, Settings, Menu } from "lucide-react";
 import NotificationsDropdown from "../notifications/notifications-header";
-import Cookies from 'js-cookie';
+import Image from "next/image";
 
 interface NavbarProps {
   onMenuClick: () => void;
 }
 
+interface User {
+  id: number;
+  firstName: string;
+  lastName: string;
+  image: string;
+  backgroundImage?: string;
+  bio: string;
+}
+
 export default function Navbar({ onMenuClick }: NavbarProps) {
   const pathname = usePathname();
   const [showDropdown, setShowDropdown] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [user, setUser] = useState<User | null>(null);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleLogout = () => {
-    // Xóa token khỏi cookie
-    Cookies.remove('token');
-    // Đóng dropdown
-    setShowDropdown(false);
-    // Chuyển hướng về trang login
-    router.push('/login');
+  const handleLogout = async () => {
+    try {
+      await fetch("http://localhost:8080/api/auth/logout", {
+        method: "POST",
+        credentials: "include", // Đảm bảo cookie được gửi theo request
+      });
+    } catch (error) {
+      console.error("Lỗi khi đăng xuất:", error);
+    } finally {
+      setShowDropdown(false);
+      router.push("/"); // Sau khi logout thì chuyển về trang chính
+    }
   };
 
-  if (!mounted) {
-    return null;
-  }
+    useEffect(() => {
+      const fetchUserData = async () => {
+        try {
+          setIsLoading(true);
+          const response = await fetch(`http://localhost:8080/api/auth/me`, {
+            credentials: "include",
+          });
+  
+          if (!response.ok) {
+            throw new Error("Không thể lấy dữ liệu người dùng");
+          }
+  
+          const data = await response.json();
+          setUser(data);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+          router.push("/");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+  
+      fetchUserData();
+    }, [router]);
+
+    if (isLoading) {
+      return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+    }
+  
+    if (error) {
+      return <div className="flex min-h-screen items-center justify-center text-red-500">{error}</div>;
+    }
+  
+    if (!user) {
+      return <div className="flex min-h-screen items-center justify-center text-red-500">Người dùng không tồn tại</div>;
+    }
 
   return (
     <header className="fixed top-0 left-0 w-full h-14 z-50 bg-gray-900 px-6 py-2 flex items-center justify-between">
@@ -111,9 +157,11 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-800"
           >
             <div className="relative h-9 w-9 overflow-hidden rounded-full border border-gray-700">
-              <img
-                src="/placeholder-user.jpg"
-                alt="User"
+              <Image
+                src={user?.image || '/placeholder-user.jpg'}
+                alt={user?.firstName || "User"}
+                width={36}
+                height={36}
                 className="h-full w-full object-cover"
               />
             </div>
