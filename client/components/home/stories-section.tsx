@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
+import Image from "next/image"
 
 const mockStories = [
   {
@@ -89,9 +90,11 @@ export default function StoriesSection() {
             key={story.id}
             className="relative h-48 w-32 flex-none cursor-pointer overflow-hidden rounded-lg"
           >
-            <img
-              src={story.image}
+            <Image
+              src={story.image || '/placeholder.svg'}
               alt={story.user.name}
+              width={128}
+              height={192}
               className="h-full w-full object-cover transition-transform duration-200 hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60" />
@@ -105,9 +108,11 @@ export default function StoriesSection() {
               ) : (
                 <div className="mb-2 flex justify-center">
                   <div className="h-8 w-8 overflow-hidden rounded-full border-2 border-blue-500">
-                    <img
-                      src={story.user.avatar}
+                    <Image
+                      src={story.user.avatar || '/placeholder-user.jpg'}
                       alt={story.user.name}
+                      width={32}
+                      height={32}
                       className="h-full w-full object-cover"
                     />
                   </div>

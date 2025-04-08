@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import MainLayout from "@/components/layout/main-layout"
 import GroupHeader from "@/components/groups/group-header"
 import GroupTabs from "@/components/groups/group-tabs"
+import GroupAbout from "@/components/groups/group-about"
 
 // This would typically come from a database
 const getGroup = (id: string) => {
@@ -21,8 +22,7 @@ const getGroup = (id: string) => {
   }
 }
 
-export default function GroupPage({ params }: { params: { id: string } }) {
-  // In a real app, you would fetch the group data from an API
+export default function GroupAboutPage({ params }: { params: { id: string } }) {
   const group = getGroup(params.id)
 
   if (!group) {
@@ -34,8 +34,8 @@ export default function GroupPage({ params }: { params: { id: string } }) {
       <div className="mx-auto max-w-5xl">
         <GroupHeader group={group} />
         <GroupTabs groupId={group.id} />
+        <GroupAbout groupId={group.id} />
       </div>
     </MainLayout>
   )
-}
-
+} 

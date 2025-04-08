@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation"; // Import usePathname
 import Link from "next/link";
 import { Users } from "lucide-react";
+import Image from "next/image";
 
 const onlineFriends = [
   { id: 1, name: "Alex Johnson", avatar: "/placeholder-user.jpg" },
@@ -47,9 +48,11 @@ export default function RightSidebar() {
                 className="flex items-center space-x-3 rounded-lg p-2 hover:bg-gray-800"
               >
                 <div className="relative h-10 w-10">
-                  <img
-                    src={friend.avatar}
+                  <Image
+                    src={friend.avatar || '/placeholder-user.jpg'}
                     alt={friend.name}
+                    width={40}
+                    height={40}
                     className="h-full w-full rounded-full object-cover"
                   />
                   <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-gray-900 bg-green-500" />
@@ -73,9 +76,11 @@ export default function RightSidebar() {
               >
                 <div className="flex items-center space-x-3">
                   <div className="relative h-10 w-10">
-                    <img
-                      src={friend.avatar}
+                    <Image
+                      src={friend.avatar || '/placeholder-user.jpg'}
                       alt={friend.name}
+                      width={40}
+                      height={40}
                       className="h-full w-full rounded-full object-cover"
                     />
                   </div>

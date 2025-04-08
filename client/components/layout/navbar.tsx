@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { Group, Home, Users, Video, User, Settings, Menu } from "lucide-react";
 import NotificationsDropdown from "../notifications/notifications-header";
+import Image from "next/image";
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -156,9 +157,11 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-800"
           >
             <div className="relative h-9 w-9 overflow-hidden rounded-full border border-gray-700">
-              <img
-                src={user?.image || ""}
+              <Image
+                src={user?.image || '/placeholder-user.jpg'}
                 alt={user?.firstName || "User"}
+                width={36}
+                height={36}
                 className="h-full w-full object-cover"
               />
             </div>
