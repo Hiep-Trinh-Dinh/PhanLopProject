@@ -17,6 +17,11 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(name = "comments", indexes = {
+    @Index(name = "idx_comment_user_id", columnList = "user_id"),
+    @Index(name = "idx_comment_post_id", columnList = "post_id"),
+    @Index(name = "idx_comment_parent_comment_id", columnList = "parentComment_id")
+})
 public class Comment {
 
     @Id
@@ -28,15 +33,16 @@ public class Comment {
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
+    @JoinColumn(name = "post_id", nullable = false)
     private Post post;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    private Comment parentComment; // Null nếu là comment gốc
+    @JoinColumn(name = "parentComment_id")
+    private Comment parentComment;
 
     @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> replies = new ArrayList<>();
@@ -54,7 +60,6 @@ public class Comment {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    // Embedded class cho media
     @Embeddable
     @Data
     public static class CommentMedia {
@@ -64,6 +69,7 @@ public class Comment {
         private MediaType mediaType;
         
         @Column(nullable = false)
+        @NotBlank
         private String url;
     }
 }

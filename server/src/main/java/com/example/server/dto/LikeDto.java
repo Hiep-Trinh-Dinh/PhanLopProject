@@ -1,9 +1,11 @@
 package com.example.server.dto;
 
+import java.io.Serializable;
+
 import lombok.Data;
 
 @Data
-public class LikeDto {
+public class LikeDto implements Serializable{
     private Long id;
     private UserDto user;
     private Long postId; // ID bài đăng được thích (null nếu là bình luận)

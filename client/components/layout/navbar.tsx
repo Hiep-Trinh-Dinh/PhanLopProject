@@ -18,7 +18,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
   const router = useRouter();
   const [showDropdown, setShowDropdown] = React.useState(false);
 
-  const { userData: user, isLoading, error } = useUserData(1); // userId tạm thời là 1
+  const { userData: user, isLoading, error } = useUserData(); // userId tạm thời là 1
 
   // Hàm xóa cookie
   const deleteCookie = (name: string) => {

@@ -26,7 +26,7 @@ public class PostDtoMapper {
         postDto.setMedia(post.getMedia() != null ? post.getMedia().stream()
             .map(media -> new PostDto.MediaDto(
                 media.getMediaType().toString(),
-                media.getUrl()
+                media.getMediaUrl()
             ))
             .collect(Collectors.toList()) : List.of());
         
@@ -60,12 +60,11 @@ public class PostDtoMapper {
 
     private static void setInteractionData(PostDto postDto, Post post, User reqUser) {
         postDto.setTotalLikes(post.getLikes() != null ? post.getLikes().size() : 0);
-        postDto.setLiked(PostUtil.isLikedByReqUser(reqUser, post));
+        postDto.setLiked(reqUser != null && PostUtil.isLikedByReqUser(reqUser, post));
         
-        // Thêm thông tin repost
         if (post.getRepostUsers() != null) {
             postDto.setTotalReposts(post.getRepostUsers().size());
-            postDto.setReposted(PostUtil.isRepostedByReqUser(reqUser, post));
+            postDto.setReposted(reqUser != null && PostUtil.isRepostedByReqUser(reqUser, post));
             postDto.setRepostUserIds(post.getRepostUsers().stream()
                 .map(User::getId)
                 .collect(Collectors.toList()));
@@ -96,9 +95,6 @@ public class PostDtoMapper {
                     .map(comment -> CommentDtoMapper.toCommentDtoWithReplies(comment, reqUser))
                     .collect(Collectors.toList()));
             }
-        } else {
-            postDto.setPreviewComments(List.of());
-            postDto.setComments(List.of());
         }
     }
 }

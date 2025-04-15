@@ -33,7 +33,7 @@ public class CommentDtoMapper {
         
         // Thông tin like
         commentDto.setTotalLikes(comment.getLikes() != null ? comment.getLikes().size() : 0);
-        commentDto.setLiked(CommentUtil.isLikedByReqUser(reqUser, comment));
+        commentDto.setLiked(reqUser != null && CommentUtil.isLikedByReqUser(reqUser, comment));
         
         // Số lượng phản hồi
         commentDto.setReplyCount(comment.getReplies() != null ? (long) comment.getReplies().size() : 0L);
@@ -47,9 +47,10 @@ public class CommentDtoMapper {
 
         CommentDto commentDto = toCommentDto(comment, reqUser);
         
-        // Thêm danh sách phản hồi (đệ quy)
+        // Giới hạn tải replies để tránh nặng
         commentDto.setReplies(comment.getReplies() != null ? comment.getReplies().stream()
-            .map(reply -> toCommentDtoWithReplies(reply, reqUser))
+            .limit(10) // Giới hạn 10 replies để tối ưu
+            .map(reply -> toCommentDto(reply, reqUser)) // Không đệ quy sâu
             .collect(Collectors.toList()) : List.of());
             
         return commentDto;

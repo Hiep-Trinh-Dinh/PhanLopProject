@@ -45,7 +45,7 @@ export default function ProfileHeader({ userId }: ProfileAboutProps) {
   const queryClient = useQueryClient();
 
   // Sử dụng hook useUserData để lấy dữ liệu người dùng
-  const { userData: user, isLoading, error: fetchError } = useUserData(userId);
+  const { userData: user, isLoading, error: fetchError } = useUserData();
 
   // Đồng bộ editUser với user khi dữ liệu thay đổi
   useEffect(() => {

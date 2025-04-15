@@ -1,5 +1,7 @@
 package com.example.server.dto;
 
+import java.io.Serializable;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class EducationDto {
+public class EducationDto implements Serializable{
     private Long id;
     private String school;
     private String degree;

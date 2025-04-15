@@ -17,6 +17,10 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(name = "posts", indexes = {
+    @Index(name = "idx_post_user_id", columnList = "user_id"),
+    @Index(name = "idx_post_created_at", columnList = "createdAt")
+})
 public class Post {
 
     @Id
@@ -24,7 +28,7 @@ public class Post {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @NotBlank
@@ -37,8 +41,7 @@ public class Post {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Like> likes = new ArrayList<>();
 
-    @ElementCollection
-    @CollectionTable(name = "post_media", joinColumns = @JoinColumn(name = "post_id"))
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PostMedia> media = new ArrayList<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
@@ -47,7 +50,7 @@ public class Post {
         joinColumns = @JoinColumn(name = "post_id"),
         inverseJoinColumns = @JoinColumn(name = "user_id")
     )
-    private List<User> repostUsers = new ArrayList<>(); // Danh sách người dùng đã repost
+    private List<User> repostUsers = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -61,19 +64,5 @@ public class Post {
 
     public enum Privacy {
         PUBLIC, FRIENDS, ONLY_ME
-    }
-
-    @Embeddable
-    @Data
-    public static class PostMedia {
-        public enum MediaType { IMAGE, VIDEO }
-        
-        @Enumerated(EnumType.STRING)
-        private MediaType mediaType;
-        
-        @Column(nullable = false)
-        private String url;
-        
-        private LocalDateTime createdAt = LocalDateTime.now();
     }
 }

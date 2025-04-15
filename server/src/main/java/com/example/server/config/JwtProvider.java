@@ -9,21 +9,24 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtProvider {
-    static final SecretKey SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256); // Tạo khóa ngẫu nhiên
+    static final SecretKey SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
     private static final long EXPIRATION_TIME = 604800000; // 7 ngày (ms)
 
     public String generateToken(Authentication authentication) {
         String email = authentication.getName();
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + EXPIRATION_TIME);
+        String sessionId = UUID.randomUUID().toString(); // Tạo session ID duy nhất
 
         return Jwts.builder()
                 .setSubject(email)
                 .claim("email", email)
                 .claim("authorities", authentication.getAuthorities().toString())
+                .claim("sessionId", sessionId) // Thêm session ID để đảm bảo tính duy nhất
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(SECRET_KEY, SignatureAlgorithm.HS256)

@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { create } from "zustand";
 import { useEffect } from "react";
 
-// Định nghĩa interface cho dữ liệu người dùng
-interface UserData {
+// Interface cho dữ liệu người dùng
+export interface UserData {
   id: number;
   workExperiences?: any[];
   educations?: any[];
@@ -26,7 +26,7 @@ interface UserData {
   relationshipStatus?: "SINGLE" | "IN_RELATIONSHIP" | "MARRIED" | "COMPLICATED" | null;
 }
 
-// Zustand store để quản lý dữ liệu người dùng toàn cục
+// Zustand store
 interface UserStore {
   userData: UserData | null;
   setUserData: (data: UserData | null) => void;
@@ -37,42 +37,63 @@ const useUserStore = create<UserStore>((set) => ({
   setUserData: (data) => set({ userData: data }),
 }));
 
-// Hàm gọi API lấy dữ liệu người dùng
-const fetchUserData = async (userId: number): Promise<UserData> => {
+// API lấy thông tin người dùng hiện tại
+const fetchUserData = async (): Promise<UserData> => {
   const response = await fetch("http://localhost:8080/api/auth/me", {
     method: "GET",
     credentials: "include",
   });
-  if (!response.ok) throw new Error("Lỗi khi lấy dữ liệu người dùng");
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      await logout();
+      throw new Error("Không được phép: Vui lòng đăng nhập lại");
+    }
+    throw new Error("Lỗi khi lấy dữ liệu người dùng");
+  }
+
   return response.json();
 };
 
-// Hook chỉ để lấy dữ liệu người dùng
-export function useUserData(userId: number) {
+// Custom hook
+export function useUserData() {
   const { userData: globalUserData, setUserData } = useUserStore();
 
-  // Sử dụng React Query để lấy dữ liệu
   const { data: fetchedData, isLoading, error } = useQuery({
-    queryKey: ["userData", userId],
-    queryFn: () => fetchUserData(userId),
-    enabled: !globalUserData, // Chỉ gọi API nếu chưa có dữ liệu trong Zustand
-    staleTime: 10 * 60 * 1000, // Cache 10 phút
-    gcTime: 15 * 60 * 1000, // Giữ trong cache 15 phút
+    queryKey: ["userData"],
+    queryFn: fetchUserData,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 
-  // Sử dụng useEffect để đồng bộ dữ liệu với Zustand
   useEffect(() => {
-    if (fetchedData && !globalUserData) {
-      setUserData(fetchedData);
+    if (fetchedData) {
+      setUserData(fetchedData); // luôn cập nhật lại dữ liệu mới
     }
-  }, [fetchedData, globalUserData, setUserData]);
+  }, [fetchedData, setUserData]);
 
-  // Dữ liệu cuối cùng để trả về (ưu tiên dữ liệu từ Zustand nếu có)
-  const userData = globalUserData || fetchedData;
+  const userData = fetchedData || globalUserData;
 
   return {
-    userData, // Dữ liệu người dùng
-    isLoading, // Trạng thái đang tải
-    error, // Lỗi nếu có
+    userData,
+    isLoading,
+    error,
   };
+}
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+
+async function logout(): Promise<void> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Logout failed! status: ${response.status}`);
+    }
+  } catch (error) {
+    console.error("Logout error:", error);
+    throw error instanceof Error ? error : new Error("Failed to logout");
+  }
 }

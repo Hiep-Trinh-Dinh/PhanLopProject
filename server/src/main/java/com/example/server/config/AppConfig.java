@@ -1,7 +1,9 @@
 package com.example.server.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -20,23 +22,28 @@ import java.util.List;
 @EnableWebSecurity
 public class AppConfig {
 
+    @Autowired
+    private RedisTemplate<String, String> redisTemplate;
+
     private static final List<String> ALLOWED_ORIGINS = Arrays.asList(
-        "http://localhost:3000", 
+        "http://localhost:3000",
         "http://127.0.0.1:3000"
     );
-    
+
     private static final List<String> ALLOWED_METHODS = Arrays.asList(
         "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"
     );
 
     private static final List<String> ALLOWED_HEADERS = Arrays.asList(
-        "Content-Type", 
+        "Content-Type",
         "Set-Cookie",
         "X-Requested-With",
         "Accept",
         "Origin",
         "Access-Control-Request-Method",
-        "Access-Control-Request-Headers"
+        "Access-Control-Request-Headers",
+        "Cache-Control",
+        "Authorization"
     );
 
     private static final List<String> EXPOSED_HEADERS = Arrays.asList(
@@ -51,15 +58,17 @@ public class AppConfig {
             .authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/posts").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/posts/{id:\\d+}").permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()
             )
-            .addFilterBefore(new CookieTokenValidator(jwtProvider), BasicAuthenticationFilter.class)
+            .addFilterBefore(new CookieTokenValidator(jwtProvider, redisTemplate), BasicAuthenticationFilter.class)
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .httpBasic(basic -> basic.disable())
             .formLogin(form -> form.disable());
-    
+
         return http.build();
     }
 
@@ -70,7 +79,7 @@ public class AppConfig {
             config.setAllowedMethods(ALLOWED_METHODS);
             config.setAllowedHeaders(ALLOWED_HEADERS);
             config.setExposedHeaders(EXPOSED_HEADERS);
-            config.setAllowCredentials(true); // Bật để hỗ trợ cookie
+            config.setAllowCredentials(true);
             config.setMaxAge(3600L);
             return config;
         };

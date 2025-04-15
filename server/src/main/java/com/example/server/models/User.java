@@ -61,7 +61,6 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Gender gender;
 
-    // Trạng thái tài khoản
     @Column(name = "is_online")
     private Boolean isOnline = false;
 
@@ -74,18 +73,15 @@ public class User {
     @Column(name = "is_active")
     private Boolean isActive = true;
 
-    // Thông tin xác thực
     @Column(name = "reset_password_token")
     private String resetPasswordToken;
 
     @Column(name = "reset_password_expires")
     private LocalDateTime resetPasswordExpires;
 
-    // Thống kê
     @Column(name = "posts_count")
     private Integer postsCount = 0;
 
-    // Timestamps
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -144,11 +140,25 @@ public class User {
         joinColumns = @JoinColumn(name = "user_id"),
         inverseJoinColumns = @JoinColumn(name = "follower_id")
     )
-    private List<User> followers;
+    private List<User> followers = new ArrayList<>();
 
     @JsonIgnore
     @ManyToMany
+    @JoinTable(
+        name = "user_following",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "following_id")
+    )
     private List<User> following = new ArrayList<>();
+
+    // Danh sách bạn bè (friends)
+    @ManyToMany
+    @JoinTable(
+        name = "user_friends",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "friend_id")
+    )
+    private List<User> friends = new ArrayList<>();
 
     // Work & Education
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -159,6 +169,5 @@ public class User {
 
     private String currentCity;
     private String hometown;
-
     private String relationshipStatus;
 }

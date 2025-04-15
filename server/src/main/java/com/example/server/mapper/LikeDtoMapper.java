@@ -1,7 +1,6 @@
 package com.example.server.mapper;
 
 import com.example.server.dto.LikeDto;
-import com.example.server.dto.UserDto;
 import com.example.server.models.Like;
 import com.example.server.models.User;
 
@@ -13,15 +12,14 @@ public class LikeDtoMapper {
     public static LikeDto toLikeDto(Like like, User reqUser) {
         if (like == null) return null;
 
-        UserDto user = UserDtoMapper.toUserDto(like.getUser());
-
         LikeDto likeDto = new LikeDto();
         likeDto.setId(like.getId());
-        likeDto.setUser(user);
-        // Thêm thông tin về đối tượng được thích (post hoặc comment)
+        likeDto.setUser(UserDtoMapper.toUserDto(like.getUser()));
+        
         if (like.getPost() != null) {
             likeDto.setPostId(like.getPost().getId());
-        } else if (like.getComment() != null) {
+        }
+        if (like.getComment() != null) {
             likeDto.setCommentId(like.getComment().getId());
         }
         return likeDto;

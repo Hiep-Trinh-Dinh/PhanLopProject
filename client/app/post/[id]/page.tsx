@@ -1,77 +1,71 @@
-import { notFound } from "next/navigation"
-import MainLayout from "@/components/layout/main-layout"
-import PostDetail from "@/components/post/post-detail"
+import { PostApi } from "@/app/lib/api";
+import MainLayout from "@/components/layout/main-layout";
+import PostDetail from "@/components/post/post-detail";
+import Link from "next/dist/client/link";
+import { notFound } from "next/navigation";
 
-// This would typically come from a database
-const getPost = (id: string) => {
-  // Mock data for a specific post
-  const posts = {
-    "1": {
-      id: 1,
-      user: {
-        id: 1,
-        name: "Jane Smith",
-        avatar: "/placeholder-user.jpg",
-        username: "janesmith",
-      },
-      content: "Just finished a great book! What are you all reading these days? 📚",
-      timestamp: "2 hours ago",
-      likes: 24,
-      comments: 5,
-      shares: 2,
-      hasLiked: false,
-    },
-    "2": {
-      id: 2,
-      user: {
-        id: 2,
-        name: "Mike Johnson",
-        avatar: "/placeholder-user.jpg",
-        username: "mikejohnson",
-      },
-      content: "Beautiful sunset at the beach today! 🌅",
-      image: "/placeholder.svg",
-      timestamp: "5 hours ago",
-      likes: 56,
-      comments: 8,
-      shares: 3,
-      hasLiked: true,
-    },
-    "3": {
-      id: 3,
-      user: {
-        id: 3,
-        name: "Sarah Williams",
-        avatar: "/placeholder-user.jpg",
-        username: "sarahwilliams",
-      },
-      content:
-        "Just got my new gaming setup! Can't wait to try it out this weekend. Who's up for some multiplayer action?",
-      timestamp: "1 day ago",
-      likes: 42,
-      comments: 12,
-      shares: 5,
-      hasLiked: false,
-    },
-  }
-
-  return posts[id as keyof typeof posts]
+interface PostPageProps {
+  params: Promise<{ id: string }>; // Định nghĩa params là Promise
 }
 
-export default function PostPage({ params }: { params: { id: string } }) {
-  // In a real app, you would fetch the post data from an API
-  const post = getPost(params.id)
+export default async function PostPage({ params }: PostPageProps) {
+  const resolvedParams = await params; // Await params để lấy giá trị
+  const id = Number(resolvedParams.id);
 
-  if (!post) {
-    notFound()
+  if (isNaN(id)) {
+    console.error(`Invalid post ID: ${resolvedParams.id}`);
+    notFound();
+    return null;
   }
 
-  return (
-    <MainLayout>
-      <div className="mx-auto max-w-2xl">
-        <PostDetail post={post} />
-      </div>
-    </MainLayout>
-  )
+  try {
+    const post = await PostApi.getById(id);
+    console.log(`Fetched post ${id}:`, post);
+    return (
+      <MainLayout>
+        <div className="mx-auto max-w-2xl">
+          <PostDetail post={post} />
+        </div>
+      </MainLayout>
+    );
+  } catch (error: any) {
+    console.error(`Error fetching post ${id}:`, error);
+    if (error.message.includes("Forbidden") || error.message.includes("permission")) {
+      return (
+        <MainLayout>
+          <div className="mx-auto max-w-2xl text-center">
+            <h1 className="text-2xl font-bold text-white">Không có quyền truy cập</h1>
+            <p className="text-gray-400">Bạn không có quyền xem bài đăng này.</p>
+          </div>
+        </MainLayout>
+      );
+    }
+    if (error.message.includes("Unauthorized")) {
+      return (
+        <MainLayout>
+          <div className="mx-auto max-w-2xl text-center">
+            <h1 className="text-2xl font-bold text-white">Vui lòng đăng nhập</h1>
+            <p className="text-gray-400">
+              Bạn cần đăng nhập để xem bài đăng này.{" "}
+              <Link href="/" className="text-blue-500 hover:underline">
+                Đăng nhập
+              </Link>
+            </p>
+          </div>
+        </MainLayout>
+      );
+    }
+    if (error.message.includes("Post not found")) {
+      notFound();
+      return null;
+    }
+    return (
+      <MainLayout>
+        <div className="mx-auto max-w-2xl text-center">
+          <h1 className="text-2xl font-bold text-white">Lỗi hệ thống</h1>
+          <p className="text-gray-400">Đã có lỗi xảy ra khi tải bài đăng. Vui lòng thử lại sau.</p>
+        </div>
+      </MainLayout>
+    );
+  }
 }
-

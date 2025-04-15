@@ -1,5 +1,6 @@
 package com.example.server.dto;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserDto {
+public class UserDto implements Serializable{
     private Long id;
     private String firstName;
     private String lastName;
@@ -27,6 +28,8 @@ public class UserDto {
     private String phone;
     private Boolean isRequestingUser;
     private Boolean login_with_Google;
+
+    private String username;
 
     private String email_contact;
     private String phone_contact;
@@ -43,19 +46,24 @@ public class UserDto {
     private LocalDateTime lastSeen;
     private Integer postsCount;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
-    private List<UserDto> Followers = new ArrayList<>();
+    private List<UserDto> followers = new ArrayList<>(); 
     private List<UserDto> following = new ArrayList<>();
+    private List<Long> friendIds = new ArrayList<>();
 
     private boolean followed;
-
-    private boolean isVarified;
+    private boolean isVerified; // Sửa typo "isVarified"
 
     public Gender getGenderEnum() {
-        return gender != null ? 
-            Gender.fromFrontendValue(gender) : 
-            null;
+        return gender != null ? Gender.fromFrontendValue(gender) : null;
     }
 
-    private LocalDateTime updatedAt;
+    public UserDto(Long id, String firstName, String lastName, String username, String image) {
+        this.id = id;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.username = username;
+        this.image = image;
+    }
 }

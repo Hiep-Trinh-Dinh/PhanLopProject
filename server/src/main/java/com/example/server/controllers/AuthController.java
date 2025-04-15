@@ -2,13 +2,16 @@ package com.example.server.controllers;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -49,13 +52,17 @@ public class AuthController {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private RedisTemplate<String, String> redisTemplate;
+
     @Value("${app.secure:true}")
     private boolean secureCookie;
 
-    @Value("${jwt.cookie.expiration:604800}") // 7 ngày
+    @Value("${jwt.cookie.expiration:604800}") // 7 ngày (giây)
     private int cookieExpiration;
 
-    private static final String COOKIE_NAME = "auth_token"; // Đảm bảo khớp với CookieTokenValidator
+    private static final String COOKIE_NAME = "auth_token";
+    private static final String BLACKLIST_PREFIX = "blacklist_token:";
 
     @PostMapping("/signup")
     public ResponseEntity<AuthResponse> createUserHandler(@Valid @RequestBody SignupRequest signupRequest) throws UserException {
@@ -63,14 +70,14 @@ public class AuthController {
         if (userRepository.findByEmail(email) != null) {
             throw new UserException("Email " + email + " đã được sử dụng.");
         }
-    
+
         User newUser = new User();
         newUser.setEmail(email);
         newUser.setPassword(passwordEncoder.encode(signupRequest.getPassword()));
         newUser.setFirstName(signupRequest.getFirstName());
         newUser.setLastName(signupRequest.getLastName());
         newUser.setBirthDate(signupRequest.getBirthDate());
-        
+
         if (signupRequest.getGender() != null) {
             try {
                 newUser.setGender(User.Gender.fromFrontendValue(signupRequest.getGender()));
@@ -78,14 +85,14 @@ public class AuthController {
                 throw new UserException("Giới tính không hợp lệ: " + signupRequest.getGender());
             }
         }
-        
+
         newUser.setVerification(new Verification());
         userRepository.save(newUser);
-    
+
         emailService.sendVerificationEmail(email, newUser.getVerification().getCode());
-    
+
         return new ResponseEntity<>(
-            new AuthResponse("Đăng ký thành công. Vui lòng kiểm tra email để lấy mã xác minh.", true), 
+            new AuthResponse("Đăng ký thành công. Vui lòng kiểm tra email để lấy mã xác minh.", true),
             HttpStatus.CREATED
         );
     }
@@ -94,34 +101,34 @@ public class AuthController {
     public ResponseEntity<String> verifyCode(@RequestBody Map<String, String> request) {
         String email = request.get("email");
         String code = request.get("code");
-    
+
         if (email == null || code == null) {
-            return new ResponseEntity<>("Thiếu email hoặc code trong request.", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("Thiếu email hoặc code.", HttpStatus.BAD_REQUEST);
         }
-    
+
         User user = userRepository.findByEmail(email);
         if (user == null) {
             return new ResponseEntity<>("Email không tồn tại.", HttpStatus.BAD_REQUEST);
         }
-    
+
         if (user.getIsEmailVerified()) {
-            return new ResponseEntity<>("Tài khoản đã được xác minh trước đó.", HttpStatus.OK);
+            return new ResponseEntity<>("Tài khoản đã được xác minh.", HttpStatus.OK);
         }
-    
+
         Verification verification = user.getVerification();
         if (verification.getExpiryDate().isBefore(LocalDateTime.now())) {
             return new ResponseEntity<>("Mã xác minh đã hết hạn.", HttpStatus.BAD_REQUEST);
         }
-    
+
         if (!verification.getCode().equals(code)) {
             return new ResponseEntity<>("Mã xác minh không đúng.", HttpStatus.BAD_REQUEST);
         }
-    
+
         user.setIsEmailVerified(true);
         user.setVerification(null);
         userRepository.save(user);
-    
-        return new ResponseEntity<>("Xác minh thành công! Bạn có thể đăng nhập.", HttpStatus.OK);
+
+        return new ResponseEntity<>("Xác minh thành công!", HttpStatus.OK);
     }
 
     @SuppressWarnings("null")
@@ -130,6 +137,9 @@ public class AuthController {
         @Valid @RequestBody LoginRequest loginRequest,
         HttpServletResponse response
     ) throws UserException {
+        // Xóa thông tin xác thực cũ
+        SecurityContextHolder.clearContext();
+
         // Xác thực người dùng
         Authentication authentication = authenticate(loginRequest.getEmail(), loginRequest.getPassword());
         
@@ -138,15 +148,15 @@ public class AuthController {
         if (user != null && !user.getIsEmailVerified()) {
             throw new UserException("Vui lòng xác minh email trước khi đăng nhập.");
         }
-        
-        // Tạo token và set cookie
+
+        // Tạo token mới
         String token = jwtProvider.generateToken(authentication);
         setJwtCookie(response, token);
-        
-        // Cập nhật trạng thái user
+
+        // Cập nhật thời gian đăng nhập
         user.setLastSeen(LocalDateTime.now());
         userRepository.save(user);
-        
+
         return ResponseEntity.ok(new AuthResponse("Đăng nhập thành công", true));
     }
 
@@ -162,7 +172,24 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletResponse response) {
+    public ResponseEntity<Void> logout(
+        @CookieValue(name = COOKIE_NAME, required = false) String token,
+        HttpServletResponse response
+    ) {
+        // Xóa thông tin xác thực
+        SecurityContextHolder.clearContext();
+
+        if (token != null) {
+            // Thêm token vào danh sách đen
+            redisTemplate.opsForValue().set(
+                BLACKLIST_PREFIX + token,
+                "true",
+                cookieExpiration,
+                TimeUnit.SECONDS
+            );
+        }
+
+        // Xóa cookie
         clearJwtCookie(response);
         return ResponseEntity.noContent().build();
     }
@@ -172,24 +199,29 @@ public class AuthController {
         @CookieValue(name = COOKIE_NAME, required = false) String token,
         HttpServletResponse response
     ) {
-        // Kiểm tra token trong cookie
-        if (token == null || !jwtProvider.validateToken(token)) {
+        // Kiểm tra token
+        if (token == null || !jwtProvider.validateToken(token) || isTokenBlacklisted(token)) {
             clearJwtCookie(response);
+            setNoCacheHeaders(response);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        
+
         // Lấy email từ token
         String email = jwtProvider.getEmailFromToken(token);
-        
-        // Tìm người dùng dựa trên email
         User user = userRepository.findByEmail(email);
         if (user == null) {
             clearJwtCookie(response);
+            setNoCacheHeaders(response);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
-        
-        // Trả về thông tin người dùng dưới dạng UserDto
+
+        // Ngăn cache
+        setNoCacheHeaders(response);
         return ResponseEntity.ok(UserDtoMapper.toUserDto(user));
+    }
+
+    private boolean isTokenBlacklisted(String token) {
+        return redisTemplate.opsForValue().get(BLACKLIST_PREFIX + token) != null;
     }
 
     private void setJwtCookie(HttpServletResponse response, String token) {
@@ -198,18 +230,23 @@ public class AuthController {
         cookie.setSecure(secureCookie);
         cookie.setPath("/");
         cookie.setMaxAge(cookieExpiration);
-        // Thêm SameSite để tăng bảo mật
         cookie.setAttribute("SameSite", "Strict");
         response.addCookie(cookie);
     }
 
     private void clearJwtCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie(COOKIE_NAME, "");
+        Cookie cookie = new Cookie(COOKIE_NAME, null);
         cookie.setHttpOnly(true);
         cookie.setSecure(secureCookie);
         cookie.setPath("/");
-        cookie.setMaxAge(0);
+        cookie.setMaxAge(0); // Xóa cookie
         cookie.setAttribute("SameSite", "Strict");
         response.addCookie(cookie);
+    }
+
+    private void setNoCacheHeaders(HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Expires", "0");
     }
 }

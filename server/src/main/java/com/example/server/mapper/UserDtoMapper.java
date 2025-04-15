@@ -11,15 +11,20 @@ import com.example.server.models.User;
 import com.example.server.models.WorkExperience;
 
 public class UserDtoMapper {
+
     public static UserDto toUserDto(User user) {
         if (user == null) return null;
 
         UserDto userDto = mapToUserDto(user);
         userDto.setFollowers(toUserDtos(user.getFollowers()));
         userDto.setFollowing(toUserDtos(user.getFollowing()));
+        userDto.setFriendIds(user.getFriends().stream()
+                .map(User::getId)
+                .collect(Collectors.toList()));
         userDto.setLogin_with_Google(user.getLogin_with_Google());
         userDto.setPhone(user.getPhone());
         userDto.setEmail(user.getEmail());
+        userDto.setVerified(user.getIsEmailVerified());
 
         return userDto;
     }
@@ -69,6 +74,7 @@ public class UserDtoMapper {
         userDto.setImage(user.getImage());
         userDto.setBackgroundImage(user.getBackgroundImage());
         userDto.setBirthDate(user.getBirthDate());
+        userDto.setUsername(user.getFirstName() + " " + user.getLastName());
         
         // Xử lý gender - chuyển từ enum sang giá trị frontend
         userDto.setGender(user.getGender() != null ? user.getGender().getFrontendValue() : null);
@@ -77,6 +83,7 @@ public class UserDtoMapper {
         userDto.setLastSeen(user.getLastSeen());
         userDto.setPostsCount(user.getPostsCount());
         userDto.setCreatedAt(user.getCreatedAt());
+        userDto.setUpdatedAt(user.getUpdatedAt());
         userDto.setIsRequestingUser(user.getIsRequestingUser());
 
         userDto.setCurrentCity(user.getCurrentCity());
@@ -88,8 +95,6 @@ public class UserDtoMapper {
 
         userDto.setPhone_contact(user.getPhone_contact());
         userDto.setEmail_contact(user.getEmail_contact());
-
-        userDto.setUpdatedAt(user.getUpdatedAt());
         
         return userDto;
     }

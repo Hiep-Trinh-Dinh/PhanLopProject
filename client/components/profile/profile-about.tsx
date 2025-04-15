@@ -2,7 +2,6 @@
 
 import { Briefcase, GraduationCap, Heart, Home, MapPin, Edit2, Save, X, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUserData } from "../../app/api/auth/me/useUserData";
 
@@ -65,7 +64,7 @@ export default function ProfileAbout({ userId }: ProfileAboutProps) {
   const queryClient = useQueryClient();
 
   // Sử dụng hook useUserData để load dữ liệu
-  const { userData, isLoading, error: fetchError } = useUserData(userId);
+  const { userData, isLoading, error: fetchError } = useUserData();
 
   // Đồng bộ editData với userData khi dữ liệu thay đổi
   useEffect(() => {

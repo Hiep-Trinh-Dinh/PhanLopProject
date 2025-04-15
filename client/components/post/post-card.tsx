@@ -13,7 +13,14 @@ interface Post {
   comments: number
   author: {
     name: string
-    avatar: string
+    image: string
+  }
+
+  User: {
+    id: string
+    fristName: string
+    lastName: string
+    image: string
   }
 }
 
@@ -29,7 +36,7 @@ export default function PostCard({ post }: PostCardProps) {
         <div className="flex items-center space-x-3">
           <div className="relative h-10 w-10 sm:h-12 sm:w-12">
             <Image 
-              src={post.author.avatar}
+              src={post.author.image || '/placeholder-user.jpg'}
               alt={post.author.name}
               fill
               className="rounded-full object-cover"
