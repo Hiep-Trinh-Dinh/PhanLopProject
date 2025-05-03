@@ -8,10 +8,26 @@ import com.example.server.utils.PostUtil;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+@Component
 public class PostDtoMapper {
 
-    public static PostDto toPostDto(Post post, User reqUser) {
+    @Autowired
+    private UserDtoMapper userDtoMapper;
+    
+    @Autowired
+    private CommentDtoMapper commentDtoMapper;
+
+    public PostDto toPostDto(Post post, User reqUser) {
         if (post == null) return null;
+        
+        // Kiểm tra trạng thái is_active, bỏ qua bài viết ẩn (is_active = true trong logic đảo ngược)
+        if (Boolean.TRUE.equals(post.getIsActive())) {
+            // Bỏ qua bài viết ẩn
+            return null;
+        }
 
         PostDto postDto = new PostDto();
         
@@ -20,8 +36,9 @@ public class PostDtoMapper {
         postDto.setCreatedAt(post.getCreatedAt());
         postDto.setUpdatedAt(post.getUpdatedAt());
         postDto.setPrivacy(post.getPrivacy().toString());
+        postDto.setGroupId(post.getGroup() != null ? post.getGroup().getId() : null);
         
-        postDto.setUser(UserDtoMapper.toUserDto(post.getUser()));
+        postDto.setUser(userDtoMapper.toUserDto(post.getUser()));
         
         postDto.setMedia(post.getMedia() != null ? post.getMedia().stream()
             .map(media -> new PostDto.MediaDto(
@@ -36,7 +53,7 @@ public class PostDtoMapper {
         return postDto;
     }
 
-    public static PostDto toPostDtoWithDetails(Post post, User reqUser) {
+    public PostDto toPostDtoWithDetails(Post post, User reqUser) {
         if (post == null) return null;
 
         PostDto postDto = toPostDto(post, reqUser);
@@ -44,21 +61,23 @@ public class PostDtoMapper {
         return postDto;
     }
 
-    public static List<PostDto> toPostDtos(List<Post> posts, User reqUser) {
+    public List<PostDto> toPostDtos(List<Post> posts, User reqUser) {
         if (posts == null) return List.of();
         return posts.stream()
             .map(post -> toPostDto(post, reqUser))
+            .filter(postDto -> postDto != null)
             .collect(Collectors.toList());
     }
 
-    public static List<PostDto> toPostDtosWithDetails(List<Post> posts, User reqUser) {
+    public List<PostDto> toPostDtosWithDetails(List<Post> posts, User reqUser) {
         if (posts == null) return List.of();
         return posts.stream()
             .map(post -> toPostDtoWithDetails(post, reqUser))
+            .filter(postDto -> postDto != null)
             .collect(Collectors.toList());
     }
 
-    private static void setInteractionData(PostDto postDto, Post post, User reqUser) {
+    private void setInteractionData(PostDto postDto, Post post, User reqUser) {
         postDto.setTotalLikes(post.getLikes() != null ? post.getLikes().size() : 0);
         postDto.setLiked(reqUser != null && PostUtil.isLikedByReqUser(reqUser, post));
         
@@ -75,26 +94,11 @@ public class PostDtoMapper {
         }
     }
 
-    private static void setCommentData(PostDto postDto, Post post, User reqUser, boolean includeDetails) {
-        long commentCount = post.getComments() != null ? post.getComments().stream()
-            .filter(comment -> comment.getParentComment() == null)
-            .count() : 0;
-        postDto.setTotalComments(commentCount);
+    private void setCommentData(PostDto postDto, Post post, User reqUser, boolean includeComments) {
+        postDto.setTotalComments(post.getComments() != null ? post.getComments().size() : 0);
         
-        if (post.getComments() != null) {
-            if (!includeDetails) {
-                postDto.setPreviewComments(post.getComments().stream()
-                    .filter(comment -> comment.getParentComment() == null)
-                    .sorted((c1, c2) -> c2.getCreatedAt().compareTo(c1.getCreatedAt()))
-                    .limit(2)
-                    .map(comment -> CommentDtoMapper.toCommentDto(comment, reqUser))
-                    .collect(Collectors.toList()));
-            } else {
-                postDto.setComments(post.getComments().stream()
-                    .filter(comment -> comment.getParentComment() == null)
-                    .map(comment -> CommentDtoMapper.toCommentDtoWithReplies(comment, reqUser))
-                    .collect(Collectors.toList()));
-            }
+        if (includeComments && post.getComments() != null) {
+            postDto.setComments(commentDtoMapper.toCommentDtos(post.getComments(), reqUser));
         }
     }
 }

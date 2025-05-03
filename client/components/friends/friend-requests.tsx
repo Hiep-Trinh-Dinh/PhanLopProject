@@ -4,42 +4,163 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Check, X } from "lucide-react"
+import { FriendshipApi, FriendshipDto, UserDto } from "@/app/lib/api"
+import { toast } from "react-hot-toast"
 
-const mockFriendRequests = [
-  {
-    id: 1,
-    name: "Alex Johnson",
-    avatar: "/placeholder-user.jpg",
-    username: "alexjohnson",
-    mutualFriends: 3,
-  },
-  {
-    id: 2,
-    name: "Taylor Smith",
-    avatar: "/placeholder-user.jpg",
-    username: "taylorsmith",
-    mutualFriends: 5,
-  },
-]
+interface FriendRequestItem {
+  id: number;
+  name: string;
+  avatar: string;
+  username: string;
+  mutualFriends: number;
+}
 
-export default function FriendRequests() {
-  const [friendRequests, setFriendRequests] = useState(mockFriendRequests)
+interface FriendRequestsProps {
+  onAccept?: () => void;
+}
+
+export default function FriendRequests({ onAccept }: FriendRequestsProps) {
+  const [friendRequests, setFriendRequests] = useState<FriendRequestItem[]>([])
+  const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
+    fetchFriendRequests()
   }, [])
 
-  const acceptRequest = (requestId: number) => {
-    setFriendRequests(friendRequests.filter((request) => request.id !== requestId))
+  const fetchFriendRequests = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const requests = await FriendshipApi.getPendingRequests()
+      
+      if (!requests || !Array.isArray(requests)) {
+        console.error("Invalid response format from API:", requests)
+        setFriendRequests([])
+        return
+      }
+      
+      // Chuyển đổi từ FriendshipDto sang FriendRequestItem để hiển thị
+      const requestItems: FriendRequestItem[] = requests.map(req => ({
+        id: req.id,
+        name: `${req.user.firstName} ${req.user.lastName}`,
+        avatar: req.user.image || "/placeholder-user.jpg",
+        username: req.user.username,
+        mutualFriends: req.mutualFriendsCount || 0
+      }))
+      
+      setFriendRequests(requestItems)
+    } catch (error) {
+      console.error("Failed to fetch friend requests:", error)
+      setError("Không thể tải lời mời kết bạn")
+      toast.error("Không thể tải lời mời kết bạn")
+      setFriendRequests([])
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const rejectRequest = (requestId: number) => {
-    setFriendRequests(friendRequests.filter((request) => request.id !== requestId))
+  const acceptRequest = async (requestId: number) => {
+    try {
+      console.log(`Đang chấp nhận lời mời kết bạn có ID: ${requestId}`);
+      
+      // Gọi API để chấp nhận lời mời kết bạn
+      await FriendshipApi.acceptRequest(requestId);
+      
+      // Cập nhật UI
+      toast.success("Đã chấp nhận lời mời kết bạn");
+      setFriendRequests(friendRequests.filter((request) => request.id !== requestId));
+      
+      // Lưu thời gian cập nhật để các tab khác có thể phát hiện thay đổi
+      if (typeof window !== 'undefined') {
+        try {
+          // Xóa danh sách bạn bè đã xóa để đảm bảo bạn mới được hiển thị
+          localStorage.removeItem('removedFriends');
+          
+          // Đánh dấu thời gian cập nhật và cần refresh
+          localStorage.setItem('friendship_updated_at', Date.now().toString());
+          localStorage.setItem('friends_list_needs_refresh', 'true');
+          
+          console.log("Đã đánh dấu cần refresh danh sách bạn bè");
+        } catch (error) {
+          console.error("Lỗi khi lưu trạng thái vào localStorage:", error);
+        }
+      }
+      
+      // Gọi callback để cập nhật giao diện
+      if (onAccept) {
+        onAccept();
+      }
+      
+      // Đợi một khoảng thời gian ngắn rồi reload trang
+      // để đảm bảo dữ liệu được đồng bộ đúng
+      setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          console.log("Reloading page to refresh friend lists");
+          window.location.reload();
+        }
+      }, 1000);
+    } catch (error) {
+      console.error("Lỗi khi chấp nhận lời mời kết bạn:", error);
+      toast.error("Không thể chấp nhận lời mời kết bạn");
+    }
+  }
+
+  const rejectRequest = async (requestId: number) => {
+    try {
+      await FriendshipApi.rejectRequest(requestId)
+      toast.success("Đã từ chối lời mời kết bạn")
+      setFriendRequests(friendRequests.filter((request) => request.id !== requestId))
+    } catch (error) {
+      console.error("Failed to reject friend request:", error)
+      toast.error("Không thể từ chối lời mời kết bạn")
+    }
   }
 
   if (!mounted) {
     return null
+  }
+
+  if (loading) {
+    return (
+      <div className="rounded-lg border border-gray-800 bg-gray-900">
+        <div className="border-b border-gray-800 p-4">
+          <h2 className="text-lg font-semibold select-none pointer-events-none">
+            Friend Requests
+          </h2>
+        </div>
+        <div className="p-4">
+          <p className="text-center text-gray-400 select-none pointer-events-none">
+            Đang tải...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-gray-800 bg-gray-900">
+        <div className="border-b border-gray-800 p-4">
+          <h2 className="text-lg font-semibold select-none pointer-events-none">
+            Friend Requests
+          </h2>
+        </div>
+        <div className="p-4">
+          <p className="text-center text-gray-400 select-none pointer-events-none">
+            {error}
+          </p>
+          <button 
+            onClick={fetchFriendRequests}
+            className="mt-2 mx-auto block rounded-md border border-gray-700 px-3 py-2 text-sm font-medium hover:bg-gray-700 hover:text-white"
+          >
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (friendRequests.length === 0) {

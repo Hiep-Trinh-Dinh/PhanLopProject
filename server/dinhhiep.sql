@@ -124,10 +124,13 @@ CREATE TABLE posts (
 );
 
 -- Post Media table
+DROP TABLE IF EXISTS post_media;
 CREATE TABLE post_media (
-    post_id BIGINT,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    post_id BIGINT NOT NULL,
     media_type VARCHAR(20) NOT NULL,
     media_url VARCHAR(255) NOT NULL,
+    media_order INT,
     created_at DATETIME,
     FOREIGN KEY (post_id) REFERENCES posts(id)
 );
@@ -191,3 +194,63 @@ CREATE TABLE user_followers (
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (follower_id) REFERENCES users(id)
 );
+
+-- Comments table
+CREATE TABLE comments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    content TEXT NOT NULL,
+    parent_comment_id BIGINT,
+    post_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    created_at DATETIME,
+    updated_at DATETIME,
+    FOREIGN KEY (parent_comment_id) REFERENCES comments(id),
+    FOREIGN KEY (post_id) REFERENCES posts(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- Comment Media table (nếu có)
+CREATE TABLE comment_media (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    comment_id BIGINT,
+    media_type VARCHAR(20) NOT NULL,
+    media_url VARCHAR(255) NOT NULL,
+    created_at DATETIME,
+    FOREIGN KEY (comment_id) REFERENCES comments(id)
+);
+
+-- Conversations table
+CREATE TABLE conversations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    creator_id BIGINT NOT NULL,
+    recipient_id BIGINT NOT NULL,
+    is_group BOOLEAN DEFAULT FALSE,
+    created_at DATETIME,
+    updated_at DATETIME,
+    last_message_text TEXT,
+    last_message_time DATETIME,
+    unread_count_creator INT DEFAULT 0,
+    unread_count_recipient INT DEFAULT 0,
+    FOREIGN KEY (creator_id) REFERENCES users(id),
+    FOREIGN KEY (recipient_id) REFERENCES users(id)
+);
+
+-- Messages table
+CREATE TABLE messages (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    conversation_id BIGINT NOT NULL,
+    sender_id BIGINT NOT NULL,
+    content TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    media_url VARCHAR(255),
+    media_type VARCHAR(50),
+    created_at DATETIME,
+    updated_at DATETIME,
+    FOREIGN KEY (conversation_id) REFERENCES conversations(id),
+    FOREIGN KEY (sender_id) REFERENCES users(id)
+);
+
+-- Index for better query performance
+-- (Phần này được bỏ qua vì có thể gây lỗi khi chạy nhiều lần)
+-- CREATE INDEX idx_conversation_users ON conversations(creator_id, recipient_id);
+-- CREATE INDEX idx_messages_conversation ON messages(conversation_id);

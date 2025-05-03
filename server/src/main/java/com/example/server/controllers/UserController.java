@@ -22,7 +22,9 @@ import com.example.server.exception.UserException;
 import com.example.server.mapper.UserDtoMapper;
 import com.example.server.models.FriendRequest;
 import com.example.server.models.User;
+import com.example.server.repositories.FriendRequestRepository;
 import com.example.server.services.UserService;
+import com.example.server.services.impl.UserServiceImpl;
 import com.example.server.utils.UserUtil;
 
 import jakarta.servlet.http.Cookie;
@@ -41,10 +43,16 @@ public class UserController {
     @Autowired
     private JwtProvider jwtProvider;
 
+    @Autowired
+    private FriendRequestRepository friendRequestRepository;
+
     @Value("${app.secure:true}")
     private boolean secureCookie;
 
     private static final String COOKIE_NAME = "auth_token";
+
+    @Autowired
+    private UserDtoMapper userDtoMapper;
 
     private void clearJwtCookie(HttpServletResponse response) {
         Cookie cookie = new Cookie(COOKIE_NAME, "");
@@ -90,7 +98,7 @@ public class UserController {
             // Cập nhật thông tin user
             logger.debug("Updating user with id: {}", reqUser.getId());
             User updatedUser = userService.updateUser(reqUser.getId(), req);
-            UserDto userDto = UserDtoMapper.toUserDto(updatedUser);
+            UserDto userDto = userDtoMapper.toUserDto(updatedUser);
 
             Map<String, Object> successResponse = new HashMap<>();
             successResponse.put("data", userDto);
@@ -139,7 +147,7 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
-        UserDto userDto = UserDtoMapper.toUserDto(user);
+        UserDto userDto = userDtoMapper.toUserDto(user);
         userDto.setIsRequestingUser(UserUtil.isReqUser(reqUser, user));
         userDto.setFollowed(UserUtil.isFollowingByReqUser(reqUser, user));
 
@@ -151,9 +159,14 @@ public class UserController {
         @RequestParam String query,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int size,
+        @RequestParam(required = false) Boolean force,
         @CookieValue(name = COOKIE_NAME, required = false) String token,
+        @RequestHeader(value = "X-Force-Refresh", required = false) String forceRefreshHeader,
         HttpServletResponse response
     ) throws UserException {
+        logger.info("Search user with query: {}, force: {}, forceHeader: {}", 
+                   query, force, forceRefreshHeader != null);
+        
         // Kiểm tra token
         if (token == null || !jwtProvider.validateToken(token)) {
             clearJwtCookie(response);
@@ -166,19 +179,75 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
+        // Xác định xem có cần làm mới dữ liệu không
+        boolean shouldForceRefresh = Boolean.TRUE.equals(force) || forceRefreshHeader != null;
+        
         Pageable pageable = PageRequest.of(page, size);
         Page<User> userPage = userService.searchUser(query, pageable);
-        List<UserDto> userDtos = UserDtoMapper.toUserDtos(userPage.getContent());
+        List<UserDto> userDtos = userDtoMapper.toUserDtos(userPage.getContent());
 
+        // Inject thông tin về trạng thái follow và bạn bè
         userDtos.forEach(dto -> {
             User user = userPage.getContent().stream()
                 .filter(u -> u.getId().equals(dto.getId()))
                 .findFirst()
                 .orElse(null);
             if (user != null) {
+                // Kiểm tra follow
                 dto.setFollowed(UserUtil.isFollowingByReqUser(reqUser, user));
+                
+                // Kiểm tra trạng thái bạn bè - Nếu cần force refresh thì truy vấn trực tiếp vào database
+                try {
+                    boolean isFriend;
+                    if (shouldForceRefresh) {
+                        // Bỏ qua cache, kiểm tra trực tiếp trong database
+                        isFriend = reqUser.getFriends().contains(user) && user.getFriends().contains(reqUser);
+                        logger.info("Force checking friendship directly: User {} and {} are friends: {}", 
+                                   reqUser.getId(), user.getId(), isFriend);
+                    } else {
+                        // Sử dụng phương thức thông thường (có thể sử dụng cache)
+                        isFriend = userService.isFriend(reqUser.getId(), user.getId());
+                    }
+                    
+                    dto.setFriend(isFriend);
+                    dto.setIsFriend(isFriend);
+                    
+                    if (!isFriend) {
+                        // Kiểm tra xem đã gửi lời mời kết bạn chưa
+                        boolean hasPendingRequest;
+                        // Kiểm tra xem có lời mời kết bạn từ người này không
+                        boolean hasReceivedRequest;
+                        
+                        if (shouldForceRefresh) {
+                            // Kiểm tra trực tiếp
+                            var sentRequest = friendRequestRepository.findBySenderAndReceiver(reqUser, user);
+                            hasPendingRequest = sentRequest != null && 
+                                              sentRequest.getStatus() == FriendRequest.Status.PENDING;
+                                              
+                            var receivedRequest = friendRequestRepository.findBySenderAndReceiver(user, reqUser);
+                            hasReceivedRequest = receivedRequest != null && 
+                                               receivedRequest.getStatus() == FriendRequest.Status.PENDING;
+                                               
+                            logger.info("Force checking friend requests - Sent: {}, Received: {}", 
+                                      hasPendingRequest, hasReceivedRequest);
+                        } else {
+                            hasPendingRequest = userService.hasPendingFriendRequest(reqUser.getId(), user.getId());
+                            hasReceivedRequest = userService.hasPendingFriendRequest(user.getId(), reqUser.getId());
+                        }
+                        
+                        dto.setPendingFriendRequest(hasPendingRequest);
+                        dto.setReceivedFriendRequest(hasReceivedRequest);
+                    }
+                } catch (Exception e) {
+                    logger.error("Lỗi khi kiểm tra trạng thái bạn bè: " + e.getMessage(), e);
+                }
             }
         });
+
+        // Thiết lập header Cache-Control để tránh caching ở client
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Expires", "0");
 
         return new ResponseEntity<>(
                 new PageImpl<>(userDtos, pageable, userPage.getTotalElements()),
@@ -209,7 +278,7 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
-        UserDto userDto = UserDtoMapper.toUserDto(user);
+        UserDto userDto = userDtoMapper.toUserDto(user);
         userDto.setFollowed(UserUtil.isFollowingByReqUser(reqUser, user));
 
         return new ResponseEntity<>(userDto, HttpStatus.OK);
@@ -318,6 +387,85 @@ public class UserController {
 
         List<FriendRequest> requests = userService.getPendingFriendRequests(user);
         return new ResponseEntity<>(requests, HttpStatus.OK);
+    }
+
+    // Thêm phương thức để sửa lỗi quan hệ bạn bè
+    @GetMapping("/fix-friendship/{userId}")
+    public ResponseEntity<?> fixFriendship(
+            @PathVariable Long userId,
+            @RequestHeader("Authorization") String jwt) {
+        try {
+            User reqUser = userService.findUserProfileByJwt(jwt);
+            
+            // Chỉ cho phép admin hoặc chính người dùng gọi API này
+            if (!reqUser.getId().equals(userId) && reqUser.getEmail().equals("admin@example.com")) {
+                return new ResponseEntity<>("Không được phép thực hiện hành động này", HttpStatus.FORBIDDEN);
+            }
+            
+            if (userService instanceof UserServiceImpl) {
+                ((UserServiceImpl) userService).fixFriendshipConsistency(reqUser.getId(), userId);
+                return new ResponseEntity<>("Đã sửa lỗi quan hệ bạn bè", HttpStatus.OK);
+            }
+            
+            return new ResponseEntity<>("Không thể thực hiện hành động này", HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (UserException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/profile")
+    public ResponseEntity<UserDto> getUserProfile(@RequestHeader("Authorization") String token) throws UserException {
+        token = token.substring(7);
+        User user = userService.findUserProfileByJwt(token);
+        
+        UserDto userDto = userDtoMapper.toUserDto(user);
+        return new ResponseEntity<>(userDto, HttpStatus.ACCEPTED);
+    }
+
+    @GetMapping("/{userId}/profile")
+    public ResponseEntity<UserDto> getUserById(@PathVariable Long userId, @RequestHeader("Authorization") String token) 
+            throws UserException {
+        token = token.substring(7);
+        
+        User user = userService.findUserById(userId);
+        UserDto userDto = userDtoMapper.toUserDto(user);
+        
+        return new ResponseEntity<>(userDto, HttpStatus.ACCEPTED);
+    }
+
+    @GetMapping("/search-auth")
+    public ResponseEntity<Page<UserDto>> searchUsers(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestHeader("Authorization") String token) throws UserException {
+        
+        token = token.substring(7);
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> userPage = userService.searchUser(query, pageable);
+        
+        // Chuyển đổi Page<User> thành Page<UserDto>
+        List<UserDto> userDtos = userDtoMapper.toUserDtos(userPage.getContent());
+        Page<UserDto> userDtoPage = new PageImpl<>(userDtos, pageable, userPage.getTotalElements());
+        
+        return new ResponseEntity<>(userDtoPage, HttpStatus.OK);
+    }
+
+    @PutMapping("/update-auth")
+    public ResponseEntity<UserDto> updateUser(
+            @RequestBody UserDto req,
+            @RequestHeader("Authorization") String token) throws UserException {
+            
+        token = token.substring(7);
+        User reqUser = userService.findUserProfileByJwt(token);
+    
+        User updatedUser = userService.updateUser(reqUser.getId(), req);
+        UserDto userDto = userDtoMapper.toUserDto(updatedUser);
+            
+        return new ResponseEntity<>(userDto, HttpStatus.OK);
     }
 
 }

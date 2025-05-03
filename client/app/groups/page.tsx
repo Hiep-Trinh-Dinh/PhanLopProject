@@ -1,7 +1,7 @@
-import MainLayout from "@/components/layout/main-layout"
-import GroupsList from "@/components/groups/groups-list"
-import GroupSuggestions from "@/components/groups/group-suggestions"
-import CreateGroupButton from "@/components/groups/create-group-button"
+import MainLayout from "@/components/layout/main-layout";
+import GroupsList from "@/components/groups/groups-list";
+import GroupSuggestions from "@/components/groups/group-suggestions";
+import CreateGroupButton from "@/components/groups/create-group-button";
 
 export default function GroupsPage() {
   return (
@@ -22,6 +22,5 @@ export default function GroupsPage() {
         </div>
       </div>
     </MainLayout>
-  )
+  );
 }
-

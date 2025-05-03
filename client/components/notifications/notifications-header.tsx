@@ -1,131 +1,89 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import NotificationsList from "./notifications-list";
-import { BellRing, Settings, Bell } from "lucide-react";
-import Link from "next/link";
-
-interface User {
-  id: number;
-  name: string;
-  username: string;
-  avatar: string;
-}
-
-interface Notification {
-  id: number;
-  type:
-    | "like"
-    | "comment"
-    | "friend_request"
-    | "friend_accepted"
-    | "group_invite"
-    | "mention";
-  content: string;
-  time: string;
-  isRead: boolean;
-  user: User;
-  link?: string;
-  actionLink?: string;
-  actionText?: string;
-}
-
-const mockNotifications: Notification[] = [
-  {
-    id: 1,
-    type: "like",
-    content: "liked your post",
-    time: "2 minutes ago",
-    isRead: false,
-    user: {
-      id: 1,
-      name: "John Doe",
-      username: "johndoe",
-      avatar: "/placeholder-user.jpg",
-    },
-    link: "/post/123",
-  },
-  {
-    id: 2,
-    type: "friend_request",
-    content: "sent you a friend request",
-    time: "1 hour ago",
-    isRead: false,
-    user: {
-      id: 2,
-      name: "Jane Smith",
-      username: "janesmith",
-      avatar: "/placeholder-user.jpg",
-    },
-  },
-  {
-    id: 3,
-    type: "comment",
-    content: "commented on your post",
-    time: "2 hours ago",
-    isRead: true,
-    user: {
-      id: 3,
-      name: "Mike Johnson",
-      username: "mikejohnson",
-      avatar: "/placeholder-user.jpg",
-    },
-    link: "/post/456",
-  },
-  {
-    id: 4,
-    type: "group_invite",
-    content: "invited you to join Web Developers Group",
-    time: "1 day ago",
-    isRead: true,
-    user: {
-      id: 4,
-      name: "Sarah Wilson",
-      username: "sarahwilson",
-      avatar: "/placeholder-user.jpg",
-    },
-    actionLink: "/groups/789",
-    actionText: "View group",
-  },
-];
+import { BellRing, Bell } from "lucide-react";
+import { NotificationDto, NotificationApi } from "@/app/lib/api";
 
 export default function NotificationsDropdown() {
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
-  useEffect(() => {
-    // Cập nhật số lượng chưa đọc khi component mount
-    setUnreadCount(notifications.filter((n) => !n.isRead).length);
+  // Hàm lấy thông báo
+  const fetchNotifications = useCallback(async () => {
+    if (isLoading) return;
+    
+    try {
+      setIsLoading(true);
+      setHasError(false);
+      
+      // Lấy thông báo từ API
+      const response = await NotificationApi.getAll();
+      if (response?.content) {
+        setNotifications(response.content);
+      }
+      
+      // Lấy số lượng thông báo chưa đọc
+      const count = await NotificationApi.getUnreadCount();
+      setUnreadCount(count);
+    } catch (error) {
+      console.error("Lỗi khi lấy thông báo:", error);
+      setHasError(true);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
+  // Lấy thông báo khi component mount
   useEffect(() => {
-    setUnreadCount(notifications.filter((n) => !n.isRead).length);
-  }, [notifications]);
+    // Chỉ gọi fetchNotifications khi component lần đầu mount
+    let isMounted = true;
+    if (isMounted) {
+      fetchNotifications();
+    }
+    
+    // Cập nhật thông báo định kỳ (mỗi 60 giây)
+    const intervalId = setInterval(() => {
+      // Chỉ cập nhật số lượng thông báo chưa đọc nếu dropdown không mở
+      if (!isOpen && isMounted) {
+        NotificationApi.getUnreadCount().then(count => {
+          setUnreadCount(count);
+        }).catch(error => {
+          console.error("Lỗi khi cập nhật số lượng thông báo:", error);
+        });
+      }
+    }, 60000);
+    
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [isOpen]);
+  
+  // Khi mở dropdown, lấy danh sách thông báo mới nhất
+  const handleToggleDropdown = () => {
+    const newState = !isOpen;
+    setIsOpen(newState);
+    
+    if (newState) {
+      fetchNotifications();
+    }
+  };
 
   return (
     <div className="relative">
       {/* Biểu tượng thông báo */}
       <button
         className="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-700 transition"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggleDropdown}
       >
-        {/* Hiệu ứng chuyển đổi giữa BellRing và Bell */}
-        <div className="relative w-6 h-6">
-          <BellRing
-            className={`absolute inset-0 w-6 h-6 text-white  transition-transform duration-500 fill-current delay-100 ${
-              unreadCount > 0
-                ? "rotate-0 opacity-100 scale-100 "
-                : "rotate-45 opacity-0 scale-50 "
-            }`}
-          />
-          <Bell
-            className={`absolute inset-0 w-6 h-6 text-white transition-transform duration-500 ${
-              unreadCount > 0
-                ? "rotate-45 opacity-0 scale-50"
-                : "rotate-0 opacity-100 scale-100"
-            }`}
-          />
-        </div>
+        {unreadCount > 0 ? (
+          <BellRing className="w-6 h-6 text-white" />
+        ) : (
+          <Bell className="w-6 h-6 text-white" />
+        )}
 
         {/* Số lượng thông báo chưa đọc */}
         {unreadCount > 0 && (
@@ -137,24 +95,32 @@ export default function NotificationsDropdown() {
 
       {/* Dropdown danh sách thông báo */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-96 bg-gray-900 rounded-lg shadow-lg border border-gray-700 overscroll-contain overflow-auto">
-          <div className="p-4 border-b border-gray-700 flex justify-between">
-            <div className="text-3xl font-semibold text-white select-none pointer-events-none">
-              Notifications
+        <div className="absolute right-0 mt-2 w-96 bg-gray-900 rounded-lg shadow-lg border border-gray-700 overscroll-contain overflow-auto z-50">
+          <div className="p-4 border-b border-gray-700">
+            <div className="text-2xl font-semibold text-white">
+              Thông báo
             </div>
-            <Link
-              href="/settings"
-              className="text-blue-400 hover:underline text-base flex justify-center w-10 h-10 items-center rounded-full hover:bg-gray-700"
-            >
-              <Settings className="text-blue-400 text-xl" />
-            </Link>
           </div>
           <div className="max-h-96 overflow-y-auto">
-            <NotificationsList
-              notifications={notifications}
-              setNotifications={setNotifications}
-              onUpdateUnread={setUnreadCount}
-            />
+            {isLoading ? (
+              <div className="flex justify-center items-center py-8 text-gray-400">
+                Đang tải thông báo...
+              </div>
+            ) : hasError ? (
+              <div className="flex justify-center items-center py-8 text-gray-400">
+                Không thể tải thông báo. Vui lòng thử lại sau.
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="flex justify-center items-center py-8 text-gray-400">
+                Chưa có hoạt động nào
+              </div>
+            ) : (
+              <NotificationsList
+                notifications={notifications}
+                setNotifications={setNotifications}
+                onUpdateUnread={setUnreadCount}
+              />
+            )}
           </div>
         </div>
       )}

@@ -14,9 +14,9 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -25,31 +25,31 @@ public class AppConfig {
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
 
-    private static final List<String> ALLOWED_ORIGINS = Arrays.asList(
-        "http://localhost:3000",
-        "http://127.0.0.1:3000"
-    );
+    // private static final List<String> ALLOWED_ORIGINS = Arrays.asList(
+    //     "http://localhost:3000",
+    //     "http://127.0.0.1:3000"
+    // );
 
-    private static final List<String> ALLOWED_METHODS = Arrays.asList(
-        "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"
-    );
+    // private static final List<String> ALLOWED_METHODS = Arrays.asList(
+    //     "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"
+    // );
 
-    private static final List<String> ALLOWED_HEADERS = Arrays.asList(
-        "Content-Type",
-        "Set-Cookie",
-        "X-Requested-With",
-        "Accept",
-        "Origin",
-        "Access-Control-Request-Method",
-        "Access-Control-Request-Headers",
-        "Cache-Control",
-        "Authorization"
-    );
+    // private static final List<String> ALLOWED_HEADERS = Arrays.asList(
+    //     "Content-Type",
+    //     "Set-Cookie",
+    //     "X-Requested-With",
+    //     "Accept",
+    //     "Origin",
+    //     "Access-Control-Request-Method",
+    //     "Access-Control-Request-Headers",
+    //     "Cache-Control",
+    //     "Authorization"
+    // );
 
-    private static final List<String> EXPOSED_HEADERS = Arrays.asList(
-        "Set-Cookie",
-        "X-Custom-Header"
-    );
+    // private static final List<String> EXPOSED_HEADERS = Arrays.asList(
+    //     "Set-Cookie",
+    //     "X-Custom-Header"
+    // );
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtProvider jwtProvider) throws Exception {
@@ -60,6 +60,12 @@ public class AppConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/posts").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/posts/{id:\\d+}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/groups").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/groups/{id:\\d+}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/groups/{id:\\d+}/members").permitAll()
+                .requestMatchers("/api/health").permitAll()
+                .requestMatchers("/api/admin/**").permitAll()
+                .requestMatchers("/api/friendship/**").authenticated()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()
             )
@@ -72,17 +78,28 @@ public class AppConfig {
         return http.build();
     }
 
-    private CorsConfigurationSource corsConfigurationSource() {
-        return request -> {
-            CorsConfiguration config = new CorsConfiguration();
-            config.setAllowedOrigins(ALLOWED_ORIGINS);
-            config.setAllowedMethods(ALLOWED_METHODS);
-            config.setAllowedHeaders(ALLOWED_HEADERS);
-            config.setExposedHeaders(EXPOSED_HEADERS);
-            config.setAllowCredentials(true);
-            config.setMaxAge(3600L);
-            return config;
-        };
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        
+        // Cho phép tất cả origins trong môi trường phát triển
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://127.0.0.1:3000"));
+        
+        // Cho phép tất cả methods
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        
+        // Cho phép tất cả headers
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "expires", "Set-Cookie", "Cookie", "X-Requested-With"));
+        
+        // Expose header Set-Cookie
+        configuration.setExposedHeaders(Arrays.asList("Set-Cookie"));
+        
+        // Cho phép credentials (cookies)
+        configuration.setAllowCredentials(true);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     @Bean

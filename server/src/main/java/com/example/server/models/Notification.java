@@ -46,6 +46,7 @@ public class Notification {
         POST_COMMENT,
         POST_MENTION,
         POST_SHARE,
+        POST_CREATED,
         FRIEND_REQUEST,
         FRIEND_ACCEPTED,
         FRIEND_SUGGESTION,

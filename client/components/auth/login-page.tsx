@@ -16,6 +16,13 @@ export default function LoginPage() {
   // Kiểm tra trạng thái đăng nhập khi trang load
   useEffect(() => {
     const checkAuth = async () => {
+      // Kiểm tra xem đã đăng nhập dưới dạng admin chưa
+      const isAdminLoggedIn = localStorage.getItem('isAdmin') === 'true';
+      if (isAdminLoggedIn) {
+        router.push("/admin");
+        return;
+      }
+      
       try {
         const response = await fetch("http://localhost:8080/api/auth/me", {
           method: "GET",
@@ -23,7 +30,21 @@ export default function LoginPage() {
         });
 
         if (response.ok) {
-          router.push("/home");
+          const userData = await response.json();
+          
+          // Kiểm tra nếu là tài khoản admin
+          const isAdmin = userData && userData.email && 
+                         (userData.email.endsWith('@admin.com') || 
+                          userData.email === 'admin@phanlop.com');
+                          
+          if (isAdmin) {
+            // Chuyển hướng đến trang admin
+            router.push("/admin");
+          } else {
+            // Chuyển hướng đến trang home cho người dùng thông thường
+            router.push("/home");
+          }
+          
           router.refresh(); // Đảm bảo dữ liệu mới được tải
         }
       } catch (error) {
@@ -68,6 +89,20 @@ export default function LoginPage() {
   
     setError("");
     setIsLoading(true);
+    
+    // Kiểm tra thông tin đăng nhập admin
+    if (email === "admin@phanlop.com" && password === "admin123") {
+      console.log("Đăng nhập admin trực tiếp");
+      
+      // Lưu trạng thái admin vào localStorage
+      localStorage.setItem('isAdmin', 'true');
+      localStorage.setItem('currentUserId', '999999'); // ID ảo cho admin
+      
+      // Chuyển hướng trực tiếp đến trang admin
+      router.push("/admin");
+      router.refresh();
+      return;
+    }
   
     try {
       const response = await fetch("http://localhost:8080/api/auth/signin", {
@@ -87,8 +122,45 @@ export default function LoginPage() {
       if (!response.ok) {
         throw new Error(data.message || "Đăng nhập thất bại");
       }
-  
-      router.push("/home");
+      
+      // Lưu ID người dùng vào localStorage
+      if (data && data.user && data.user.id) {
+        localStorage.setItem('currentUserId', data.user.id.toString());
+        console.log('Đã lưu currentUserId:', data.user.id);
+      } else if (data && data.id) {
+        localStorage.setItem('currentUserId', data.id.toString());
+        console.log('Đã lưu currentUserId:', data.id);
+      } else {
+        // Nếu không có ID trong response, gọi API lấy thông tin người dùng
+        try {
+          const userResponse = await fetch("http://localhost:8080/api/auth/me", {
+            method: "GET",
+            credentials: "include"
+          });
+          
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            if (userData && userData.id) {
+              localStorage.setItem('currentUserId', userData.id.toString());
+              console.log('Đã lưu currentUserId từ API /me:', userData.id);
+            }
+          }
+        } catch (userError) {
+          console.error("Lỗi khi lấy thông tin người dùng:", userError);
+        }
+      }
+      
+      // Kiểm tra nếu là tài khoản admin
+      const isAdmin = email.endsWith('@admin.com') || email === 'admin@phanlop.com';
+      if (isAdmin) {
+        // Chuyển hướng đến trang admin
+        console.log('Chuyển hướng tài khoản admin đến trang quản trị');
+        router.push("/admin");
+      } else {
+        // Chuyển hướng đến trang home cho người dùng thông thường
+        router.push("/home");
+      }
+      
       router.refresh();
     } catch (err:any) {
       console.error("Signin error:", err);

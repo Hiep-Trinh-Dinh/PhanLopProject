@@ -39,6 +39,9 @@ public class CommentServiceImpl implements CommentService {
     @Autowired
     private LikeService likeService;
 
+    @Autowired
+    private CommentDtoMapper commentDtoMapper;
+
     @Override
     @Transactional
     @CacheEvict(value = {"posts", "comments"}, allEntries = true)
@@ -75,7 +78,7 @@ public class CommentServiceImpl implements CommentService {
         }
 
         Comment savedComment = commentRepository.save(comment);
-        return CommentDtoMapper.toCommentDto(savedComment, user);
+        return commentDtoMapper.toCommentDto(savedComment, user);
     }
 
     @Override
@@ -118,7 +121,7 @@ public class CommentServiceImpl implements CommentService {
         }
 
         Comment savedReply = commentRepository.save(reply);
-        return CommentDtoMapper.toCommentDto(savedReply, user);
+        return commentDtoMapper.toCommentDto(savedReply, user);
     }
 
     @Override
@@ -137,7 +140,7 @@ public class CommentServiceImpl implements CommentService {
             throw new UserException("You do not have permission to view this comment");
         }
 
-        return CommentDtoMapper.toCommentDtoWithReplies(comment, reqUser);
+        return commentDtoMapper.toCommentDtoWithReplies(comment, reqUser);
     }
 
     @Override
@@ -154,7 +157,7 @@ public class CommentServiceImpl implements CommentService {
             throw new UserException("You do not have permission to view comments of this post");
         }
 
-        return CommentDtoMapper.toCommentDtos(post.getComments(), reqUser);
+        return commentDtoMapper.toCommentDtos(post.getComments(), reqUser);
     }
 
     @Override
@@ -177,7 +180,7 @@ public class CommentServiceImpl implements CommentService {
         comment.setContent(commentDto.getContent());
         
         Comment updatedComment = commentRepository.save(comment);
-        return CommentDtoMapper.toCommentDto(updatedComment, userRepository.findById(userId).get());
+        return commentDtoMapper.toCommentDto(updatedComment, userRepository.findById(userId).get());
     }
 
     @Override
@@ -213,7 +216,7 @@ public class CommentServiceImpl implements CommentService {
         }
 
         likeService.likeComment(commentId, userId);
-        return CommentDtoMapper.toCommentDto(comment, user);
+        return commentDtoMapper.toCommentDto(comment, user);
     }
 
     @Override
@@ -233,7 +236,7 @@ public class CommentServiceImpl implements CommentService {
         }
 
         likeService.unlikeComment(commentId, userId);
-        return CommentDtoMapper.toCommentDto(comment, user);
+        return commentDtoMapper.toCommentDto(comment, user);
     }
 
     private boolean canViewPost(Post post, User user) {
@@ -247,5 +250,12 @@ public class CommentServiceImpl implements CommentService {
             default:
                 return false;
         }
+    }
+    
+    @Override
+    public Comment getCommentEntityById(Long commentId) throws UserException {
+        logger.info("Fetching comment entity with id: {}", commentId);
+        return commentRepository.findById(commentId)
+            .orElseThrow(() -> new UserException("Comment not found with id: " + commentId));
     }
 }

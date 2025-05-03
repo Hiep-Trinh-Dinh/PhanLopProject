@@ -25,6 +25,11 @@ public class CustomUserDetailsServerImplementation implements UserDetailsService
         if (user == null || user.getLogin_with_Google()) {
             throw new UsernameNotFoundException("Không tìm thấy user với email: " + username);
         }
+        
+        // Kiểm tra tài khoản có bị khóa không
+        if (!user.getIsActive()) {
+            throw new UsernameNotFoundException("Tài khoản đã bị khóa: " + username);
+        }
 
         List<GrantedAuthority> authorities = new ArrayList<>();
 

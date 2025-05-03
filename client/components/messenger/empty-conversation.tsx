@@ -1,15 +1,16 @@
+"use client";
+
 import { MessageSquare } from "lucide-react"
 
 export default function EmptyConversation() {
   return (
-    <div className="flex h-full flex-col items-center justify-center p-4 text-center">
-      <div className="mb-4 rounded-full bg-gray-800 p-4">
-        <MessageSquare className="h-8 w-8 text-gray-400" />
+    <div className="flex flex-col items-center justify-center text-center p-8">
+      <div className="bg-muted/50 p-4 rounded-full mb-4">
+        <MessageSquare className="h-10 w-10 text-muted-foreground" />
       </div>
-      <h2 className="text-xl font-semibold">Your Messages</h2>
-      <p className="mt-2 max-w-md text-gray-400 select-none pointer-events-none">
-        Send private messages to a friend or group. Select a conversation from
-        the sidebar or start a new one.
+      <h3 className="text-xl font-semibold mb-2">Tin nhắn của bạn</h3>
+      <p className="text-muted-foreground max-w-md">
+        Chọn một cuộc trò chuyện từ danh sách bên trái hoặc bắt đầu cuộc trò chuyện mới với bạn bè của bạn.
       </p>
     </div>
   );

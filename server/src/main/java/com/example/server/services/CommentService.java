@@ -2,6 +2,7 @@ package com.example.server.services;
 
 import com.example.server.dto.CommentDto;
 import com.example.server.exception.UserException;
+import com.example.server.models.Comment;
 
 import java.util.List;
 
@@ -21,4 +22,6 @@ public interface CommentService {
     CommentDto likeComment(Long commentId, Long userId) throws UserException;
     
     CommentDto unlikeComment(Long commentId, Long userId) throws UserException;
+    
+    Comment getCommentEntityById(Long commentId) throws UserException;
 }

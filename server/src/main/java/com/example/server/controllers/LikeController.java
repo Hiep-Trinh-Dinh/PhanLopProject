@@ -6,10 +6,12 @@ import com.example.server.dto.CommentDto;
 import com.example.server.dto.LikeDto;
 import com.example.server.exception.UserException;
 import com.example.server.models.User;
+import com.example.server.models.Post;
 import com.example.server.services.LikeService;
 import com.example.server.services.PostService;
 import com.example.server.services.CommentService;
 import com.example.server.services.UserService;
+import com.example.server.services.NotificationService;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,6 +41,9 @@ public class LikeController {
 
     @Autowired
     private CommentService commentService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Autowired
     private JwtProvider jwtProvider;
@@ -117,6 +122,15 @@ public class LikeController {
             // Kiểm tra quyền xem bài viết
             postService.getPostById(postId, reqUser.getId());
             likeService.likePost(postId, reqUser.getId());
+            
+            // Lấy post entity để tạo thông báo
+            Post post = postService.getPostEntityById(postId);
+            
+            // Tạo thông báo cho chủ bài viết
+            if (post != null && !post.getUser().getId().equals(reqUser.getId())) {
+                notificationService.createPostLikeNotification(post, reqUser);
+            }
+            
             PostDto postDto = postService.getPostById(postId, reqUser.getId());
             if (postDto == null) {
                 logger.error("Post not found after liking: {}", postId);

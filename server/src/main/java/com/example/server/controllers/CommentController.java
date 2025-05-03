@@ -3,8 +3,11 @@ package com.example.server.controllers;
 import com.example.server.config.JwtProvider;
 import com.example.server.dto.CommentDto;
 import com.example.server.exception.UserException;
+import com.example.server.models.Comment;
+import com.example.server.models.Post;
 import com.example.server.models.User;
 import com.example.server.services.CommentService;
+import com.example.server.services.NotificationService;
 import com.example.server.services.PostService;
 import com.example.server.services.UserService;
 
@@ -33,6 +36,9 @@ public class CommentController {
 
     @Autowired
     private PostService postService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Autowired
     private JwtProvider jwtProvider;
@@ -112,6 +118,16 @@ public class CommentController {
             // Kiểm tra quyền xem bài đăng trước khi comment
             postService.getPostById(postId, reqUser.getId());
             CommentDto createdComment = commentService.createComment(commentDto, postId, reqUser.getId());
+            
+            // Lấy post và comment entity để tạo thông báo
+            Post post = postService.getPostEntityById(postId);
+            Comment comment = commentService.getCommentEntityById(createdComment.getId());
+            
+            // Tạo thông báo cho chủ bài viết nếu người bình luận không phải là chủ bài viết
+            if (post != null && comment != null && !post.getUser().getId().equals(reqUser.getId())) {
+                notificationService.createPostCommentNotification(post, comment, reqUser);
+            }
+            
             if (createdComment == null) {
                 logger.error("Failed to create comment for post: {}", postId);
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Không thể tạo bình luận");

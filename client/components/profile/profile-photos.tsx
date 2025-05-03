@@ -76,11 +76,13 @@ export default function ProfilePhotos({ userId }: ProfilePhotosProps) {
         {photos.map((photo) => (
           <div key={photo.id} className="group relative">
             <div className="relative aspect-square overflow-hidden rounded-lg">
-              <Avatar 
-                src={photo.url}
-                alt={photo.caption || "Photo"}
-                className="h-full w-full"
-              />
+              <Avatar className="h-full w-full">
+                <img 
+                  src={photo.url} 
+                  alt={photo.caption || "Photo"} 
+                  className="h-full w-full object-cover rounded-lg" 
+                />
+              </Avatar>
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 transition-opacity group-hover:opacity-100" />
             </div>
             <button
@@ -123,4 +125,3 @@ export default function ProfilePhotos({ userId }: ProfilePhotosProps) {
     </div>
   )
 }
-

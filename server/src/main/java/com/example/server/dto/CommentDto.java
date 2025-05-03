@@ -18,6 +18,7 @@ public class CommentDto implements Serializable {
     private List<MediaDto> media;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Long parentId; // ID của comment cha nếu đây là reply
 
     // Thông tin tương tác
     private int totalLikes;

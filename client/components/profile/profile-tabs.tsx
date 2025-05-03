@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import PostFeed from "@/components/home/post-feed"
 import ProfileAbout from "@/components/profile/profile-about"
 import ProfileFriends from "@/components/profile/profile-friends"
@@ -16,6 +16,11 @@ interface ProfileTabsProps {
 
 export default function ProfileTabs({ user }: ProfileTabsProps) {
   const [activeTab, setActiveTab] = useState("posts")
+  
+  // Log dành cho debug
+  useEffect(() => {
+    console.log(`ProfileTabs: Hiển thị thông tin của user ID ${user.id}, username: ${user.username}`);
+  }, [user]);
 
   const tabs = [
     { id: "posts", label: "Posts" },
@@ -47,7 +52,14 @@ export default function ProfileTabs({ user }: ProfileTabsProps) {
       </div>
 
       <div className="mt-6">
-        {activeTab === "posts" && <PostFeed />}
+        {activeTab === "posts" && (
+          <div>
+            <h3 className="mb-4 text-lg font-semibold text-white">
+              Bài viết của {user.name}
+            </h3>
+            <PostFeed isProfilePage={true} userId={user.id} />
+          </div>
+        )}
         {activeTab === "about" && <ProfileAbout userId={user.id} />}
         {activeTab === "friends" && <ProfileFriends userId={user.id} />}
         {activeTab === "photos" && <ProfilePhotos userId={user.id} />}
