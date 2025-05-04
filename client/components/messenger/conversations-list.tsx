@@ -1,146 +1,113 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React from "react";
 import Image from "next/image";
-import { Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { formatDistanceToNow } from "date-fns";
+import { vi } from "date-fns/locale";
 
-interface User {
+export interface Conversation {
   id: number;
-  username: string;
-  name: string;
-  avatar: string;
-  isOnline: boolean;
-  lastActive: string;
+  otherUser: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    image: string;
+  };
+  lastMessageText: string;
+  lastMessageTime: string;
+  unreadCount: number;
 }
 
-interface ConversationProps {
-  onSelectUser: (user: User) => void;
+interface ConversationsListProps {
+  conversations: Conversation[];
+  loading: boolean;
 }
 
-export default function ConversationsList({ onSelectUser }: ConversationProps) {
+export default function ConversationsList({ conversations, loading }: ConversationsListProps) {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Mock data matching with page.tsx users
-  const conversations = [
-    {
-      id: 1,
-      username: "janesmith",
-      name: "Jane Smith",
-      avatar: "/placeholder-user.jpg",
-      lastMessage: "Hey, how are you?",
-      timestamp: "2m ago",
-      unreadCount: 2,
-      isOnline: true,
-      lastActive: "Active now",
-    },
-    {
-      id: 2,
-      username: "mikejohnson",
-      name: "Mike Johnson",
-      avatar: "/placeholder-user.jpg",
-      lastMessage: "See you tomorrow!",
-      timestamp: "30m ago",
-      unreadCount: 0,
-      isOnline: false,
-      lastActive: "Active 30m ago",
-    },
-    {
-      id: 3,
-      username: "sarahwilliams",
-      name: "Sarah Williams",
-      avatar: "/placeholder-user.jpg",
-      lastMessage: "Thanks for your help!",
-      timestamp: "1h ago",
-      unreadCount: 1,
-      isOnline: true,
-      lastActive: "Active now",
-    },
-  ];
-
-  const filteredConversations = conversations.filter((conversation) =>
-    conversation.name.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const handleConversationClick = (conversation: (typeof conversations)[0]) => {
-    const user = {
-      id: conversation.id,
-      username: conversation.username,
-      name: conversation.name,
-      avatar: conversation.avatar,
-      isOnline: conversation.isOnline,
-      lastActive: conversation.lastActive,
-    };
-    onSelectUser(user);
+  const navigateToConversation = (conversationId: number) => {
+    router.push(`/messages/${conversationId}`);
   };
 
-  // Return null or loading state until mounted
-  if (!mounted) {
-    return null; // or return loading skeleton
+  if (loading) {
+    return (
+      <div className="p-4">
+        <h2 className="text-lg font-semibold mb-4">Tin nhắn</h2>
+        <div className="space-y-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center space-x-3 p-2 rounded-md">
+              <div className="w-12 h-12 rounded-full bg-muted animate-pulse"></div>
+              <div className="flex-1">
+                <div className="h-4 bg-muted animate-pulse rounded w-1/2 mb-2"></div>
+                <div className="h-3 bg-muted animate-pulse rounded w-3/4"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="flex h-full flex-col border-r border-gray-800">
-      <div className="p-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search messages"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-full bg-gray-800 py-2 pl-10 pr-4 text-sm text-white placeholder-gray-400 focus:outline-none"
-          />
+    <div className="p-4">
+      <h2 className="text-lg font-semibold mb-4">Tin nhắn</h2>
+      
+      {conversations.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <p>Bạn chưa có cuộc trò chuyện nào</p>
         </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto">
-        {filteredConversations.map((conversation) => (
-          <button
-            key={conversation.id}
-            className="flex w-full items-center gap-3 border-b border-gray-800 p-4 hover:bg-gray-800/50"
-            onClick={() => handleConversationClick(conversation)}
-          >
-            <div className="relative h-12 w-12">
-              <Image
-                src={conversation.avatar}
-                alt={conversation.name}
-                fill
-                className="rounded-full object-cover"
-              />
-              {conversation.isOnline && (
-                <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-gray-900 bg-green-500" />
-              )}
-            </div>
-
-            <div className="flex-1 overflow-hidden">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium text-white">{conversation.name}</h3>
-                <p className="text-sm text-gray-400">
-                  {conversation.timestamp}
-                </p>
+      ) : (
+        <div className="space-y-1">
+          {conversations.map((conversation) => (
+            <div
+              key={conversation.id}
+              className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer"
+              onClick={() => navigateToConversation(conversation.id)}
+            >
+              <Avatar className="w-12 h-12">
+                <AvatarImage 
+                  src={conversation.otherUser.image} 
+                  alt={`${conversation.otherUser.firstName} ${conversation.otherUser.lastName}`} 
+                />
+                <AvatarFallback>
+                  {conversation.otherUser.firstName?.[0]}
+                  {conversation.otherUser.lastName?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-medium truncate">
+                    {conversation.otherUser.firstName} {conversation.otherUser.lastName}
+                  </h3>
+                  {conversation.lastMessageTime && (
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(conversation.lastMessageTime), { 
+                        addSuffix: true,
+                        locale: vi
+                      })}
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-muted-foreground truncate">
+                    {conversation.lastMessageText || "Bắt đầu cuộc trò chuyện"}
+                  </p>
+                  {conversation.unreadCount > 0 && (
+                    <span className="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
+                      {conversation.unreadCount}
+                    </span>
+                  )}
+                </div>
               </div>
-
-              <div className="flex items-center justify-between">
-                <p className="truncate text-sm text-gray-400">
-                  {conversation.lastMessage}
-                </p>
-                {conversation.unreadCount > 0 && (
-                  <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs text-white">
-                    {conversation.unreadCount}
-                  </span>
-                )}
-              </div>
             </div>
-          </button>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

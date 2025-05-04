@@ -3,8 +3,8 @@ package com.example.server.models;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Entity
@@ -23,7 +23,7 @@ public class Group {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Privacy privacy = Privacy.PUBLIC;
+    private Privacy privacy;
 
     @Column(name = "member_count")
     private Integer memberCount = 0;
@@ -34,65 +34,24 @@ public class Group {
     @Column(name = "media_count")
     private Integer mediaCount = 0;
 
-    @ElementCollection
-    @CollectionTable(name = "group_rules")
-    private List<String> rules = new ArrayList<>();
+    @Column(columnDefinition = "TEXT")
+    private String rules;
 
     @ManyToOne
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
 
-    @ElementCollection
-    @CollectionTable(name = "group_members")
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<GroupMember> members = new ArrayList<>();
+
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Post> posts = new ArrayList<>();
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    @Embeddable
-    @Data
-    public static class GroupMember {
-        @ManyToOne
-        @JoinColumn(name = "user_id", nullable = false)
-        private User user;
-
-        @Enumerated(EnumType.STRING)
-        @Column(nullable = false)
-        private Role role = Role.MEMBER;
-
-        @Column(name = "is_notified")
-        private Boolean isNotified = true;
-
-        @Column(name = "joined_at")
-        private LocalDateTime joinedAt;
-
-        @Column(name = "last_active_at")
-        private LocalDateTime lastActiveAt;
-
-        @Column(name = "post_count")
-        private Integer postCount = 0;
-
-        @Column(name = "media_count")
-        private Integer mediaCount = 0;
-
-        public enum Role {
-            ADMIN, MODERATOR, MEMBER
-        }
-
-        @PrePersist
-        protected void onCreate() {
-            joinedAt = LocalDateTime.now();
-            lastActiveAt = LocalDateTime.now();
-        }
-
-        @PreUpdate
-        protected void onUpdate() {
-            lastActiveAt = LocalDateTime.now();
-        }
-    }
 
     public enum Privacy {
         PUBLIC, PRIVATE
@@ -108,4 +67,4 @@ public class Group {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-} 
+}

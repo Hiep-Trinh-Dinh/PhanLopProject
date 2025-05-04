@@ -22,11 +22,11 @@ export default function GroupTabs({ groupId }: GroupTabsProps) {
       href: `/groups/${groupId}/about`,
       icon: Info,
     },
-    {
-      name: "Media",
-      href: `/groups/${groupId}/media`,
-      icon: Image,
-    },
+    // {
+    //   name: "Media",
+    //   href: `/groups/${groupId}/media`,
+    //   icon: Image,
+    // },
     {
       name: "Members",
       href: `/groups/${groupId}/members`,

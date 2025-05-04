@@ -40,6 +40,9 @@ public class LikeServiceImpl implements LikeService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private LikeDtoMapper likeDtoMapper;
+
     @Override
     @Transactional
     @CacheEvict(value = {"posts", "comments"}, allEntries = true)
@@ -63,10 +66,10 @@ public class LikeServiceImpl implements LikeService {
             like.setUser(user);
             like.setPost(post);
             Like savedLike = likeRepository.save(like);
-            return LikeDtoMapper.toLikeDto(savedLike, user);
+            return likeDtoMapper.toLikeDto(savedLike, user);
         }
         
-        return LikeDtoMapper.toLikeDto(existingLike.get(), user);
+        return likeDtoMapper.toLikeDto(existingLike.get(), user);
     }
 
     @Override
@@ -93,10 +96,10 @@ public class LikeServiceImpl implements LikeService {
             like.setUser(user);
             like.setComment(comment);
             Like savedLike = likeRepository.save(like);
-            return LikeDtoMapper.toLikeDto(savedLike, user);
+            return likeDtoMapper.toLikeDto(savedLike, user);
         }
         
-        return LikeDtoMapper.toLikeDto(existingLike.get(), user);
+        return likeDtoMapper.toLikeDto(existingLike.get(), user);
     }
 
     @Override
@@ -154,7 +157,7 @@ public class LikeServiceImpl implements LikeService {
         }
         
         List<Like> likes = likeRepository.findByPostId(postId);
-        return LikeDtoMapper.toLikeDtos(likes, reqUser);
+        return likeDtoMapper.toLikeDtos(likes, reqUser);
     }
 
     @Override
@@ -174,7 +177,7 @@ public class LikeServiceImpl implements LikeService {
         }
         
         List<Like> likes = likeRepository.findByCommentId(commentId);
-        return LikeDtoMapper.toLikeDtos(likes, reqUser);
+        return likeDtoMapper.toLikeDtos(likes, reqUser);
     }
 
     private boolean canViewPost(Post post, User user) {

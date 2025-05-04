@@ -5,6 +5,9 @@ import Image from "next/image";
 import { Camera, Image as ImageIcon, Smile, Video, X } from "lucide-react";
 import { useUserData } from "../../app/api/auth/me/useUserData";
 import { PostApi } from "@/app/lib/api";
+import { useRouter } from "next/navigation";
+import { usePostContext } from "@/app/context/post-context";
+import toast from "react-hot-toast";
 
 interface MediaFile {
   file?: File; // Dùng cho video trước khi gửi lên server
@@ -14,6 +17,8 @@ interface MediaFile {
 }
 
 export default function CreatePostCard() {
+  const router = useRouter();
+  const { triggerRefresh } = usePostContext();
   const [postText, setPostText] = useState("");
   const [privacy, setPrivacy] = useState<"PUBLIC" | "PRIVATE" | "FRIENDS">("PUBLIC");
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
@@ -67,6 +72,19 @@ export default function CreatePostCard() {
           return;
         }
       } else if (file.type.startsWith("video/")) {
+        // Kiểm tra kích thước video trước khi cho phép tải lên
+        const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+        if (file.size > MAX_VIDEO_SIZE) {
+          setError(`Video quá lớn (${(file.size / (1024 * 1024)).toFixed(2)}MB). Kích thước tối đa là 100MB.`);
+          return;
+        }
+        
+        // Kiểm tra định dạng video
+        if (!file.type.match(/video\/(mp4|webm|ogg)/)) {
+          setError("Chỉ hỗ trợ định dạng video MP4, WebM và OGG.");
+          return;
+        }
+
         newMedia.push({
           file,
           url: URL.createObjectURL(file), // Tạm thời để preview
@@ -93,9 +111,20 @@ export default function CreatePostCard() {
     setIsSubmitting(true);
     setError(null);
 
+    // Kiểm tra lại kích thước video trước khi gửi
+    const videoFiles = mediaFiles.filter(m => m.type === "VIDEO" && m.file);
+    for (const media of videoFiles) {
+      if (media.file && media.file.size > 100 * 1024 * 1024) {
+        setError(`Video ${media.fileName} quá lớn. Kích thước tối đa là 100MB.`);
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
     try {
       const formData = new FormData();
-      // Gửi PostDto dưới dạng JSON string
+      
+      // Tạo JSON đại diện cho bài đăng mới
       const postDto = {
         content: postText,
         privacy: privacy,
@@ -106,31 +135,79 @@ export default function CreatePostCard() {
             url: media.url,
           })),
       };
+      
       console.log("PostDto being sent:", postDto);
+      
+      // Gửi bài đăng dưới dạng JSON string
       formData.append("post", JSON.stringify(postDto));
 
       // Gửi file video
-      mediaFiles
-        .filter((media) => media.type === "VIDEO" && media.file)
-        .forEach((media, index) => {
-          formData.append(`media[${index}]`, media.file!);
-        });
+      if (videoFiles.length > 0) {
+        console.log(`Đang chuẩn bị gửi ${videoFiles.length} file video`);
+        
+        for (let i = 0; i < videoFiles.length; i++) {
+          const media = videoFiles[i];
+          if (media.file) {
+            console.log(`Video[${i}] info:`, {
+              name: media.fileName,
+              size: media.file.size,
+              type: media.file.type
+            });
+            
+            // Tên field phải dùng đúng định dạng media[i] để server có thể nhận diện
+            formData.append(`media[${i}]`, media.file);
+            
+            // Log để kiểm tra formData đã được thiết lập đúng
+            console.log(`Video[${i}] đã được thêm vào formData`);
+          }
+        }
+        
+        // In ra thông tin FormData để debug
+        for (const [key, value] of formData.entries()) {
+          console.log(`FormData field: ${key}`, value instanceof File ? `File: ${value.name}` : value);
+        }
+      }
 
-      const createdPost = await PostApi.create(formData);
-      console.log("Post created:", createdPost);
+      try {
+        console.log("Bắt đầu gửi FormData tới server...");
+        const createdPost = await PostApi.create(formData);
+        console.log("Post created:", createdPost);
 
-      // Reset form
-      setPostText("");
-      setMediaFiles([]);
-      setPrivacy("PUBLIC");
+        // Reset form
+        setPostText("");
+        setMediaFiles([]);
+        setPrivacy("PUBLIC");
+        setError("");
+        
+        // Trigger refresh posts in feed
+        triggerRefresh();
+        
+        toast.success("Bài viết đã được đăng thành công!");
+        
+        // Refresh router để cập nhật các thành phần khác nếu cần
+        router.refresh();
+      } catch (apiError: any) {
+        console.error("API Error:", apiError);
+        if (typeof apiError === "string") {
+          setError(`Lỗi từ server: ${apiError}`);
+        } else if (apiError.message) {
+          if (apiError.message.includes("Failed to fetch")) {
+            setError("Không thể kết nối đến server. Video có thể quá lớn hoặc kết nối bị gián đoạn.");
+          } else {
+            setError(`Lỗi: ${apiError.message}`);
+          }
+        } else {
+          setError("Có lỗi xảy ra khi đăng bài");
+        }
+      }
     } catch (err: any) {
       console.error("Error creating post:", err);
-      if (err.message.includes("401")) {
+      if (err.message && err.message.includes("401")) {
         setError("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-      } else if (err.message.includes("400")) {
+      } else if (err.message && err.message.includes("400")) {
         setError("Nội dung không hợp lệ: " + err.message);
       } else {
-        setError("Lỗi khi đăng bài: " + err.message);
+        setError("Lỗi khi đăng bài: " + (err.message || err));
       }
     } finally {
       setIsSubmitting(false);

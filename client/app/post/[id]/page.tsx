@@ -57,7 +57,6 @@ export default async function PostPage({ params }: PostPageProps) {
     }
     if (error.message.includes("Post not found")) {
       notFound();
-      return null;
     }
     return (
       <MainLayout>

@@ -28,6 +28,7 @@ import com.example.server.requests.SignupRequest;
 import com.example.server.responses.AuthResponse;
 import com.example.server.services.CustomUserDetailsServerImplementation;
 import com.example.server.services.EmailService;
+import com.example.server.services.UserService;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -54,6 +55,12 @@ public class AuthController {
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private UserDtoMapper userDtoMapper;
 
     @Value("${app.secure:true}")
     private boolean secureCookie;
@@ -143,10 +150,17 @@ public class AuthController {
         // Xác thực người dùng
         Authentication authentication = authenticate(loginRequest.getEmail(), loginRequest.getPassword());
         
-        // Kiểm tra email đã xác minh
+        // Lấy thông tin người dùng
         User user = userRepository.findByEmail(loginRequest.getEmail());
+        
+        // Kiểm tra email đã xác minh
         if (user != null && !user.getIsEmailVerified()) {
             throw new UserException("Vui lòng xác minh email trước khi đăng nhập.");
+        }
+        
+        // Kiểm tra tài khoản có bị khóa không
+        if (user != null && !user.getIsActive()) {
+            throw new UserException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để biết thêm chi tiết.");
         }
 
         // Tạo token mới
@@ -157,6 +171,9 @@ public class AuthController {
         user.setLastSeen(LocalDateTime.now());
         userRepository.save(user);
 
+        // Cập nhật trạng thái online
+        userService.updateOnlineStatus(user.getId(), 1);
+
         return ResponseEntity.ok(new AuthResponse("Đăng nhập thành công", true));
     }
 
@@ -165,9 +182,18 @@ public class AuthController {
         if (userDetails == null) {
             throw new UserException("Email không tồn tại.");
         }
+        
+        // Kiểm tra mật khẩu
         if (!passwordEncoder.matches(password, userDetails.getPassword())) {
             throw new UserException("Mật khẩu không đúng.");
         }
+        
+        // Kiểm tra tài khoản có bị khóa không (nếu cần thiết)
+        User user = userRepository.findByEmail(username);
+        if (user != null && !user.getIsActive()) {
+            throw new UserException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để biết thêm chi tiết.");
+        }
+        
         return new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
     }
 
@@ -179,7 +205,16 @@ public class AuthController {
         // Xóa thông tin xác thực
         SecurityContextHolder.clearContext();
 
-        if (token != null) {
+        if (token != null && jwtProvider.validateToken(token)) {
+            // Lấy email từ token
+            String email = jwtProvider.getEmailFromToken(token);
+            User user = userRepository.findByEmail(email);
+            
+            if (user != null) {
+                // Cập nhật trạng thái offline
+                userService.updateOnlineStatus(user.getId(), 0);
+            }
+            
             // Thêm token vào danh sách đen
             redisTemplate.opsForValue().set(
                 BLACKLIST_PREFIX + token,
@@ -191,6 +226,7 @@ public class AuthController {
 
         // Xóa cookie
         clearJwtCookie(response);
+
         return ResponseEntity.noContent().build();
     }
 
@@ -214,10 +250,17 @@ public class AuthController {
             setNoCacheHeaders(response);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
+        
+        // Kiểm tra tài khoản có bị khóa không
+        if (!user.getIsActive()) {
+            clearJwtCookie(response);
+            setNoCacheHeaders(response);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
 
         // Ngăn cache
         setNoCacheHeaders(response);
-        return ResponseEntity.ok(UserDtoMapper.toUserDto(user));
+        return ResponseEntity.ok(userDtoMapper.toUserDto(user));
     }
 
     private boolean isTokenBlacklisted(String token) {

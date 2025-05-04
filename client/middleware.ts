@@ -8,6 +8,11 @@ export function middleware(request: NextRequest) {
 
   // Danh sách các route công khai không cần xác thực
   const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/verify-email', '/reset-password'];
+  
+  // Cho phép truy cập trang admin mà không cần xác thực
+  if (pathname.startsWith('/admin')) {
+    return NextResponse.next();
+  }
 
   // Nếu đã đăng nhập mà truy cập vào trang công khai
   if (token && publicRoutes.includes(pathname)) {

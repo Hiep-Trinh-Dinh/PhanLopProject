@@ -1,41 +1,63 @@
-import { notFound } from "next/navigation"
-import MainLayout from "@/components/layout/main-layout"
-import GroupHeader from "@/components/groups/group-header"
-import GroupTabs from "@/components/groups/group-tabs"
-import GroupAbout from "@/components/groups/group-about"
+// src/app/groups/[id]/page.tsx
+import { notFound } from "next/navigation";
+import MainLayout from "@/components/layout/main-layout";
+import GroupHeader from "@/components/groups/group-header";
+import GroupTabs from "@/components/groups/group-tabs";
+import GroupAbout from "@/components/groups/group-about";
+import { groupApi, GroupDto } from "@/app/lib/groupApi";
 
-// This would typically come from a database
-const getGroup = (id: string) => {
-  // Mock data for a specific group
-  return {
-    id: Number.parseInt(id),
-    name: "React Developers",
-    cover: "/placeholder.svg",
-    avatar: "/placeholder.svg",
-    members: 1250,
-    isJoined: true,
-    isAdmin: false,
-    privacy: "Public",
-    description:
-      "A community for React developers to share knowledge, ask questions, and connect with other developers.",
-    created: "January 2020",
+interface GroupAboutPageProps {
+  params: { id: string };
+}
+
+async function getGroup(id: string): Promise<GroupDto> {
+  try {
+    const group = await groupApi.getGroupById(Number.parseInt(id));
+    return group;
+  } catch (error: any) {
+    console.error("Error fetching group:", error);
+    throw new Error(error.message || "Không thể tải thông tin nhóm");
   }
 }
 
-export default function GroupAboutPage({ params }: { params: { id: string } }) {
-  const group = getGroup(params.id)
+export default async function GroupAboutPage({ params }: GroupAboutPageProps) {
+  let group: GroupDto;
 
-  if (!group) {
-    notFound()
+  try {
+    group = await getGroup(params.id);
+  } catch (error: any) {
+    if (error.message.includes("403")) {
+      return (
+        <MainLayout>
+          <div className="mx-auto max-w-5xl">
+            <p className="text-red-500">
+              Bạn không có quyền xem nhóm này vì đây là nhóm riêng tư. Vui lòng đăng nhập hoặc tham gia nhóm.
+            </p>
+          </div>
+        </MainLayout>
+      );
+    }
+    if (error.message.includes("404")) {
+      notFound();
+    }
+    return (
+      <MainLayout>
+        <div className="mx-auto max-w-5xl">
+          <p className="text-red-500">
+            Đã xảy ra lỗi khi tải nhóm: {error.message || "Vui lòng thử lại sau."}
+          </p>
+        </div>
+      </MainLayout>
+    );
   }
 
   return (
     <MainLayout>
       <div className="mx-auto max-w-5xl">
-        <GroupHeader group={group} />
+        <GroupHeader groupId={group.id} />
         <GroupTabs groupId={group.id} />
         <GroupAbout groupId={group.id} />
       </div>
     </MainLayout>
-  )
-} 
+  );
+}

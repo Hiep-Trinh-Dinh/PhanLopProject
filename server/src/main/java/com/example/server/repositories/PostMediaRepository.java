@@ -7,5 +7,7 @@ import com.example.server.models.PostMedia;
 
 @Repository
 public interface PostMediaRepository extends JpaRepository<PostMedia, Long> {
+
+    void deleteByPostId(Long postId);
     
 }

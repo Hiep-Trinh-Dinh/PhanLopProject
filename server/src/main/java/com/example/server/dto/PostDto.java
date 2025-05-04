@@ -18,8 +18,10 @@ public class PostDto implements Serializable{
     private UserDto user;
     private List<MediaDto> media = new ArrayList<>();
     private String privacy; // "PUBLIC", "FRIENDS", "ONLY_ME"
+    private String groupName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Long groupId;
 
     // Thông tin tương tác
     private int totalLikes;
@@ -36,7 +38,7 @@ public class PostDto implements Serializable{
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class MediaDto {
+    public static class MediaDto implements Serializable {
         private String mediaType; // "IMAGE" hoặc "VIDEO"
         private String url;
     }

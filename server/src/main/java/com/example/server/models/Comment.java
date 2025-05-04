@@ -29,7 +29,7 @@ public class Comment {
     private Long id;
 
     @NotBlank
-    @Column(length = 20000)
+    @Column(length = 10000)
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)

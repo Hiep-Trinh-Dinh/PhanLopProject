@@ -8,59 +8,62 @@ import com.example.server.utils.CommentUtil;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+@Component
 public class CommentDtoMapper {
 
+    @Autowired
+    private UserDtoMapper userDtoMapper;
+
     // Chuyển đổi cơ bản Comment sang CommentDto (không bao gồm replies)
-    public static CommentDto toCommentDto(Comment comment, User reqUser) {
+    public CommentDto toCommentDto(Comment comment, User reqUser) {
         if (comment == null) return null;
 
         CommentDto commentDto = new CommentDto();
         commentDto.setId(comment.getId());
         commentDto.setContent(comment.getContent());
+        commentDto.setUser(userDtoMapper.toUserDto(comment.getUser()));
         commentDto.setCreatedAt(comment.getCreatedAt());
         commentDto.setUpdatedAt(comment.getUpdatedAt());
-        
-        // Thông tin người dùng
-        commentDto.setUser(UserDtoMapper.toUserDto(comment.getUser()));
-        
-        // Media
-        commentDto.setMedia(comment.getMedia() != null ? comment.getMedia().stream()
-            .map(media -> new CommentDto.MediaDto(
-                media.getMediaType().toString(),
-                media.getUrl()
-            ))
-            .collect(Collectors.toList()) : List.of());
-        
-        // Thông tin like
+        commentDto.setLiked(CommentUtil.isLikedByReqUser(reqUser, comment));
         commentDto.setTotalLikes(comment.getLikes() != null ? comment.getLikes().size() : 0);
-        commentDto.setLiked(reqUser != null && CommentUtil.isLikedByReqUser(reqUser, comment));
+        commentDto.setReplyCount(comment.getReplies() != null ? comment.getReplies().size() : 0);
         
-        // Số lượng phản hồi
-        commentDto.setReplyCount(comment.getReplies() != null ? (long) comment.getReplies().size() : 0L);
+        if (comment.getParentComment() != null) {
+            commentDto.setParentId(comment.getParentComment().getId());
+        }
         
         return commentDto;
     }
 
     // Chuyển đổi Comment sang CommentDto bao gồm cả replies (đệ quy)
-    public static CommentDto toCommentDtoWithReplies(Comment comment, User reqUser) {
-        if (comment == null) return null;
-
+    public CommentDto toCommentDtoWithReplies(Comment comment, User reqUser) {
         CommentDto commentDto = toCommentDto(comment, reqUser);
         
-        // Giới hạn tải replies để tránh nặng
-        commentDto.setReplies(comment.getReplies() != null ? comment.getReplies().stream()
-            .limit(10) // Giới hạn 10 replies để tối ưu
-            .map(reply -> toCommentDto(reply, reqUser)) // Không đệ quy sâu
-            .collect(Collectors.toList()) : List.of());
-            
+        if (comment.getReplies() != null && !comment.getReplies().isEmpty()) {
+            List<CommentDto> replies = comment.getReplies().stream()
+                .map(reply -> toCommentDto(reply, reqUser))
+                .collect(Collectors.toList());
+            commentDto.setReplies(replies);
+        }
+        
         return commentDto;
     }
 
     // Chuyển đổi danh sách Comment
-    public static List<CommentDto> toCommentDtos(List<Comment> comments, User reqUser) {
+    public List<CommentDto> toCommentDtos(List<Comment> comments, User reqUser) {
         if (comments == null) return List.of();
         return comments.stream()
             .map(comment -> toCommentDto(comment, reqUser))
+            .collect(Collectors.toList());
+    }
+
+    public List<CommentDto> toCommentDtosWithReplies(List<Comment> comments, User reqUser) {
+        if (comments == null) return List.of();
+        return comments.stream()
+            .map(comment -> toCommentDtoWithReplies(comment, reqUser))
             .collect(Collectors.toList());
     }
 }

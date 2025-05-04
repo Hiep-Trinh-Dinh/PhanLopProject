@@ -9,11 +9,9 @@ export default function ProfilePage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col items-center space-y-4">
-        <Avatar 
-          src={avatar}
-          alt="Profile"
-          className="w-32 h-32"
-        />
+        <Avatar className="w-32 h-32">
+          {avatar ? <img src={avatar} alt="Profile" /> : null}
+        </Avatar>
         {/* Rest of profile content */}
       </div>
     </div>

@@ -4,9 +4,13 @@ import { useState, useEffect, memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { Heart, MessageCircle, MoreHorizontal, Share2, ThumbsUp } from "lucide-react";
+import { Heart, MessageCircle, MoreHorizontal, ThumbsUp, Share2 } from "lucide-react";
 import { PostApi } from "@/app/lib/api";
 import type { PostDto, CommentDto } from "@/app/lib/api";
+import { usePostContext } from "@/app/context/post-context";
+
+// API URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
 interface PostProps {
   id: number;
@@ -23,16 +27,16 @@ interface PostProps {
   createdAt: string;
   totalLikes: number;
   totalComments: number;
-  totalReposts: number;
-  reposted: boolean;
   previewComments: CommentDto[];
+  groupId?: number;
+  groupName?: string;
 }
 
 interface PostActionsProps {
   post: PostProps;
   onLike: (id: number) => void;
   onComment: (id: number) => void;
-  onRepost: (id: number) => void;
+  onShare: (id: number) => void;
 }
 
 interface CommentSectionProps {
@@ -42,7 +46,13 @@ interface CommentSectionProps {
   onSubmit: () => void;
 }
 
-const PostActions = memo(({ post, onLike, onComment, onRepost }: PostActionsProps) => (
+// props để biết khi nào đang hiển thị trong trang profile
+interface PostFeedProps {
+  isProfilePage?: boolean;
+  userId?: number;
+}
+
+const PostActions = memo(({ post, onLike, onComment, onShare }: PostActionsProps) => (
   <div className="flex border-t border-gray-800 pt-1">
     <button
       className={`flex flex-1 items-center justify-center rounded-md px-3 py-1.5 ${
@@ -65,13 +75,11 @@ const PostActions = memo(({ post, onLike, onComment, onRepost }: PostActionsProp
       <span>Comment</span>
     </button>
     <button
-      className={`flex flex-1 items-center justify-center rounded-md px-3 py-1.5 ${
-        post.reposted ? "text-green-500" : "text-gray-400"
-      } hover:bg-gray-800`}
-      onClick={() => onRepost(post.id)}
+      className="flex flex-1 items-center justify-center rounded-md px-3 py-1.5 text-gray-400 hover:bg-gray-800"
+      onClick={() => onShare(post.id)}
     >
       <Share2 className="mr-1 h-5 w-5" />
-      <span>{post.reposted ? "Reposted" : "Share"}</span>
+      <span>Share</span>
     </button>
   </div>
 ));
@@ -127,13 +135,11 @@ const Comment = memo(({ comment }: { comment: CommentDto }) => (
         className="h-8 w-8 object-cover rounded-full"
         placeholder="blur"
         blurDataURL="/placeholder-user.jpg"
-        onError={(e) => {
-        }}
       />
     </div>
     <div className="flex-1 rounded-md bg-gray-800 p-3">
       <Link
-        href={`/profile/${comment.user.username}`}
+        href={`/profile/${comment.user.id}`}
         className="font-semibold text-white hover:underline"
       >
         {comment.user.firstName} {comment.user.lastName}
@@ -147,53 +153,116 @@ const Comment = memo(({ comment }: { comment: CommentDto }) => (
 ));
 Comment.displayName = "Comment";
 
-export default function PostFeed() {
+export default function PostFeed({ isProfilePage, userId }: PostFeedProps) {
   const [posts, setPosts] = useState<PostProps[]>([]);
-  const [commentText, setCommentText] = useState("");
-  const [activeCommentId, setActiveCommentId] = useState<number | null>(null);
-  const [showDropdown, setShowDropdown] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeCommentId, setActiveCommentId] = useState<number | null>(null);
+  const [commentText, setCommentText] = useState("");
+  const [showDropdown, setShowDropdown] = useState<number | null>(null);
+  const { refreshFlag } = usePostContext();
+  
+  // Get current user's ID for permission checks
+  const currentUserId = typeof window !== 'undefined' 
+    ? parseInt(localStorage.getItem('userId') || '0') 
+    : 0;
+
+  const fetchPosts = async () => {
+    try {
+      setLoading(true);
+      
+      let response;
+      
+      // Nếu đang ở trang profile của người dùng, gọi API lấy bài viết của người dùng
+      if (isProfilePage && userId) {
+        console.log(`Đang lấy bài viết cho người dùng ${userId}`);
+        try {
+          response = await PostApi.getUserPosts(userId, 0, 20);
+          console.log("Kết quả:", response.content?.length || 0, "bài viết");
+        } catch (userPostError) {
+          console.error("Lỗi khi lấy bài viết của người dùng:", userPostError);
+          
+          // Hiển thị thông báo nhưng vẫn tiếp tục hiển thị trang
+          setError("Không thể tải bài viết của người dùng này. Người dùng có thể chưa đăng bài hoặc server đang gặp sự cố.");
+          
+          // Đặt mảng rỗng để không lỗi khi render
+          setPosts([]);
+          setLoading(false);
+          return;
+        }
+      } 
+      // Nếu không, lấy tất cả bài viết
+      else {
+        console.log("Đang lấy tất cả bài viết");
+        try {
+          response = await PostApi.getAll(0, 20);
+          console.log("Kết quả:", response.content?.length || 0, "bài viết");
+        } catch (error) {
+          console.error("Lỗi khi lấy tất cả bài viết:", error);
+          setError("Không thể tải bài viết. Vui lòng thử lại sau.");
+          setPosts([]);
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // Nếu không có bài viết nào được trả về
+      if (!response.content || response.content.length === 0) {
+        if (isProfilePage) {
+          setError("Người dùng này chưa có bài viết nào.");
+        } else {
+          setError("Không có bài viết nào để hiển thị.");
+        }
+        setPosts([]);
+        setLoading(false);
+        return;
+      }
+      
+      const mappedPosts = response.content.map((post: PostDto) => ({
+        id: post.id,
+        liked: post.liked,
+        user: {
+          id: post.user.id,
+          firstName: post.user.firstName,
+          lastName: post.user.lastName,
+          username: post.user.username,
+          image: post.user.image || "/placeholder-user.jpg",
+        },
+        content: post.content,
+        media: post.media || [],
+        createdAt: post.createdAt,
+        totalLikes: post.totalLikes,
+        totalComments: post.totalComments,
+        previewComments: post.previewComments || [],
+        groupId: post.groupId || undefined,
+        groupName: post.groupName || undefined,
+      }));
+      setPosts(mappedPosts);
+      
+      // Xóa thông báo lỗi nếu thành công
+      if (error) setError(null);
+    } catch (err: any) {
+      console.error("Lỗi khi tải bài viết:", err);
+      
+      // Hiển thị thông báo lỗi người dùng thân thiện
+      if (err.message?.includes("Unauthorized")) {
+        setError("Vui lòng đăng nhập lại để xem bài viết");
+        window.location.href = "/login";
+      } else {
+        setError("Không thể tải bài viết. Vui lòng thử lại sau.");
+      }
+      
+      // Đặt mảng rỗng để không lỗi khi render
+      setPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        setLoading(true);
-        const response = await PostApi.getAll(0, 10);
-        console.log("Fetched posts:", response.content);
-        const mappedPosts = response.content.map((post: PostDto) => ({
-          id: post.id,
-          liked: post.liked,
-          user: {
-            id: post.user.id,
-            firstName: post.user.firstName,
-            lastName: post.user.lastName,
-            username: post.user.username,
-            image: post.user.image || "/placeholder-user.jpg",
-          },
-          content: post.content,
-          media: post.media || [],
-          createdAt: post.createdAt,
-          totalLikes: post.totalLikes,
-          totalComments: post.totalComments,
-          totalReposts: post.totalReposts,
-          reposted: post.reposted,
-          previewComments: post.previewComments || [],
-        }));
-        setPosts(mappedPosts);
-      } catch (err: any) {
-        console.error("Fetch posts error:", err);
-        setError(err.message || "Failed to load posts");
-        if (err.message.includes("Unauthorized")) {
-          window.location.href = "/login";
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    console.log(`PostFeed: Đã nhận userId=${userId}, isProfilePage=${isProfilePage}`);
     fetchPosts();
-  }, []);
+  }, [userId, refreshFlag]);
 
   const handleLike = async (postId: number) => {
     try {
@@ -224,31 +293,6 @@ export default function PostFeed() {
     setCommentText("");
   };
 
-  const handleRepost = async (postId: number) => {
-    try {
-      const postIndex = posts.findIndex((p) => p.id === postId);
-      if (postIndex === -1) return;
-
-      const updatedPost = await PostApi.repost(postId);
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === postId
-            ? {
-                ...p,
-                reposted: updatedPost.reposted,
-                totalReposts: updatedPost.totalReposts,
-              }
-            : p
-        )
-      );
-    } catch (err: any) {
-      console.error("Repost error:", err);
-      if (err.message.includes("Unauthorized")) {
-        window.location.href = "/login";
-      }
-    }
-  };
-
   const submitComment = async (postId: number) => {
     if (!commentText.trim()) return;
 
@@ -275,17 +319,93 @@ export default function PostFeed() {
     }
   };
 
-  if (loading) return <div className="p-4 text-center">Loading...</div>;
-  if (error) return <div className="p-4 text-red-500">{error}</div>;
+  // Thêm hàm xử lý xóa bài đăng
+  const handleDeletePost = async (postId: number) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa bài đăng này không?")) {
+      return;
+    }
+    
+    try {
+      await PostApi.delete(postId);
+      
+      // Cập nhật state để xóa bài đăng khỏi danh sách
+      setPosts((prev) => prev.filter(post => post.id !== postId));
+      setShowDropdown(null);
+      
+      // Thông báo xóa thành công
+      alert("Đã xóa bài đăng thành công");
+    } catch (err: any) {
+      console.error("Delete post error:", err);
+      alert(err.message || "Không thể xóa bài đăng");
+      
+      if (err.message.includes("Unauthorized")) {
+        window.location.href = "/login";
+      }
+    }
+  };
+
+  const handleShare = async (postId: number) => {
+    try {
+      // Tìm bài đăng cần share
+      const post = posts.find(p => p.id === postId);
+      if (!post) return;
+      
+      // Tạo đường dẫn share
+      const shareUrl = `${window.location.origin}/post/${postId}`;
+      
+      // Kiểm tra xem trình duyệt có hỗ trợ Web Share API không
+      if (navigator.share) {
+        await navigator.share({
+          title: `Bài viết của ${post.user.firstName} ${post.user.lastName}`,
+          text: post.content.substring(0, 100) + (post.content.length > 100 ? '...' : ''),
+          url: shareUrl,
+        });
+      } else {
+        // Sao chép đường dẫn vào clipboard nếu không hỗ trợ Web Share API
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Đã sao chép đường dẫn bài viết vào clipboard!');
+      }
+    } catch (err: any) {
+      console.error("Share error:", err);
+    }
+  };
+
+  if (loading) return (
+    <div className="p-4 text-center">
+      <div className="animate-pulse flex space-x-2 justify-center">
+        <div className="h-3 w-3 bg-blue-400 rounded-full"></div>
+        <div className="h-3 w-3 bg-blue-400 rounded-full"></div>
+        <div className="h-3 w-3 bg-blue-400 rounded-full"></div>
+      </div>
+      <div className="mt-2 text-gray-300">Đang tải bài viết...</div>
+    </div>
+  );
+  
+  if (error) return (
+    <div className="p-4 text-center">
+      <div className="rounded-lg border border-red-800 bg-gray-900 p-4 text-red-500">
+        <div className="mb-2 font-bold">Đã xảy ra lỗi</div>
+        <div>{error}</div>
+        <button 
+          onClick={fetchPosts} 
+          className="mt-3 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+        >
+          Thử lại
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      {posts.length === 0 && !loading && (
+      {posts.length === 0 && !loading && !error && (
         <div className="rounded-lg border border-gray-800 bg-gray-900 p-4 text-center">
-          No posts found
+          {isProfilePage 
+            ? `Người dùng này chưa có bài viết nào.${userId ? ` (ID: ${userId})` : ''}` 
+            : "Không tìm thấy bài viết nào"}
         </div>
       )}
-
+      
       {posts.map((post) => (
         <div key={post.id} className="rounded-lg border border-gray-800 bg-gray-900">
           {/* Post header */}
@@ -300,18 +420,25 @@ export default function PostFeed() {
                   className="h-10 w-10 rounded-full object-cover"
                   placeholder="blur"
                   blurDataURL="/placeholder-user.jpg"
-                  onError={(e) => {
-                    e.currentTarget.src = "/placeholder-user.jpg";
-                  }}
                 />
               </div>
               <div>
-                <Link
-                  href={`/profile/${post.user.username}`}
-                  className="font-semibold text-white hover:underline"
-                >
-                  {post.user.firstName} {post.user.lastName}
-                </Link>
+                <div className="flex items-center space-x-2">
+                  <Link
+                    href={`/profile/${post.user.id}`}
+                    className="font-semibold text-white hover:underline"
+                  >
+                    {post.user.firstName} {post.user.lastName}
+                  </Link>
+                  {post.groupName && (
+                    <span className="text-sm text-gray-400">
+                      Trong nhóm{" "}
+                      <Link href={`/groups/${post.groupId}`} className="text-blue-500 hover:underline">
+                        {post.groupName}
+                      </Link>
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-gray-400">
                   {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
                 </p>
@@ -334,6 +461,14 @@ export default function PostFeed() {
                   <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-gray-800">
                     Report Post
                   </button>
+                  {isProfilePage && currentUserId === post.user.id && (
+                    <button 
+                      className="w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-gray-800" 
+                      onClick={() => handleDeletePost(post.id)}
+                    >
+                      Delete Post
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -347,14 +482,23 @@ export default function PostFeed() {
                 {post.media.map((media, index) => (
                   <div key={index} className="relative">
                     {media.mediaType === "VIDEO" ? (
-                      <video
-                        src={media.url}
-                        controls
-                        className="h-auto w-full object-cover rounded-lg"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                        }}
-                      />
+                      <>
+                        <video
+                          key={`video-${post.id}-${index}`}
+                          src={media.url.startsWith('http') ? media.url : `${API_BASE_URL}${media.url}`}
+                          controls
+                          className="max-h-[400px] w-full object-contain rounded-lg mx-auto"
+                          onError={(e) => {
+                            console.error(`Lỗi hiển thị video:`, { 
+                              originalSrc: media.url,
+                              fullSrc: media.url.startsWith('http') ? media.url : `${API_BASE_URL}${media.url}`,
+                              error: e 
+                            });
+                            // Hiển thị thông báo lỗi thay vì ẩn video
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      </>
                     ) : (
                       <Image
                         src={media.url}
@@ -365,6 +509,7 @@ export default function PostFeed() {
                         placeholder="blur"
                         blurDataURL="/placeholder-user.jpg"
                         onError={(e) => {
+                          console.error(`Lỗi hiển thị ảnh: ${media.url}`);
                           e.currentTarget.style.display = "none";
                         }}
                       />
@@ -382,8 +527,7 @@ export default function PostFeed() {
               <div>
                 <Link href={`/post/${post.id}`} className="hover:underline">
                   {post.totalComments} comments
-                </Link>{" "}
-                • {post.totalReposts} shares
+                </Link>
               </div>
             </div>
 
@@ -391,7 +535,7 @@ export default function PostFeed() {
               post={post}
               onLike={handleLike}
               onComment={handleComment}
-              onRepost={handleRepost}
+              onShare={handleShare}
             />
 
             {post.previewComments.length > 0 && (

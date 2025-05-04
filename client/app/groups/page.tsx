@@ -1,7 +1,6 @@
-import MainLayout from "@/components/layout/main-layout"
-import GroupsList from "@/components/groups/groups-list"
-import GroupSuggestions from "@/components/groups/group-suggestions"
-import CreateGroupButton from "@/components/groups/create-group-button"
+import MainLayout from "@/components/layout/main-layout";
+import GroupsList from "@/components/groups/groups-list";
+import CreateGroupButton from "@/components/groups/create-group-button";
 
 export default function GroupsPage() {
   return (
@@ -12,16 +11,10 @@ export default function GroupsPage() {
           <CreateGroupButton />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="md:col-span-2">
-            <GroupsList />
-          </div>
-          <div>
-            <GroupSuggestions />
-          </div>
+        <div>
+          <GroupsList />
         </div>
       </div>
     </MainLayout>
-  )
+  );
 }
-

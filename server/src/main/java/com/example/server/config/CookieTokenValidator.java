@@ -9,6 +9,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -23,6 +25,7 @@ public class CookieTokenValidator extends OncePerRequestFilter {
     private static final String BLACKLIST_PREFIX = "blacklist_token:";
     private final JwtProvider jwtProvider;
     private final RedisTemplate<String, String> redisTemplate;
+    private static final Logger logger = LoggerFactory.getLogger(CookieTokenValidator.class);
 
     public CookieTokenValidator(JwtProvider jwtProvider, RedisTemplate<String, String> redisTemplate) {
         this.jwtProvider = jwtProvider;
@@ -30,18 +33,35 @@ public class CookieTokenValidator extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal(@SuppressWarnings("null") HttpServletRequest request, @SuppressWarnings("null") HttpServletResponse response, @SuppressWarnings("null") FilterChain filterChain)
             throws ServletException, IOException {
+        String requestURI = request.getRequestURI();
+        
+        // Debug: ghi lại thông tin request
+        logger.info("Request URI: {}, Method: {}", requestURI, request.getMethod());
+        
+        // Bỏ qua xác thực cho API admin trong môi trường phát triển
+        if (requestURI.startsWith("/api/admin")) {
+            logger.info("Bỏ qua xác thực cho API admin: {}", requestURI);
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
         String jwt = null;
         Cookie[] cookies = request.getCookies();
+        
+        // Debug: ghi lại thông tin cookies
         if (cookies != null) {
+            logger.info("Found {} cookies", cookies.length);
             for (Cookie cookie : cookies) {
+                logger.info("Cookie: {}={}", cookie.getName(), cookie.getName().equals(COOKIE_NAME) ? "[MASKED]" : cookie.getValue());
                 if (COOKIE_NAME.equals(cookie.getName())) {
                     jwt = cookie.getValue();
-                    logger.info("Found auth_token: " + jwt);
                     break;
                 }
             }
+        } else {
+            logger.warn("No cookies found in request");
         }
 
         if (jwt != null) {
@@ -78,7 +98,7 @@ public class CookieTokenValidator extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 logger.info("Authenticated user: " + email);
             } catch (Exception e) {
-                logger.error("Token validation failed: " + e.getMessage());
+                logger.error("Token validation failed: " + e.getMessage(), e);
                 SecurityContextHolder.clearContext();
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
                 return;

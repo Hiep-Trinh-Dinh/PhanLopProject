@@ -14,6 +14,11 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.context.event.ApplicationEventMulticaster;
+import org.springframework.context.event.SimpleApplicationEventMulticaster;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
+import org.springframework.context.annotation.Lazy;
 
 import java.util.Arrays;
 import java.util.List;
@@ -60,6 +65,12 @@ public class AppConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/posts").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/posts/{id:\\d+}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/groups").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/groups/{id:\\d+}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/groups/{id:\\d+}/members").permitAll()
+                .requestMatchers("/api/health").permitAll()
+                .requestMatchers("/api/admin/**").permitAll()
+                .requestMatchers("/api/friendship/**").authenticated()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()
             )
@@ -72,17 +83,26 @@ public class AppConfig {
         return http.build();
     }
 
-    private CorsConfigurationSource corsConfigurationSource() {
-        return request -> {
-            CorsConfiguration config = new CorsConfiguration();
-            config.setAllowedOrigins(ALLOWED_ORIGINS);
-            config.setAllowedMethods(ALLOWED_METHODS);
-            config.setAllowedHeaders(ALLOWED_HEADERS);
-            config.setExposedHeaders(EXPOSED_HEADERS);
-            config.setAllowCredentials(true);
-            config.setMaxAge(3600L);
-            return config;
-        };
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(ALLOWED_ORIGINS);
+        configuration.setAllowedMethods(ALLOWED_METHODS);
+        configuration.setAllowedHeaders(ALLOWED_HEADERS);
+        configuration.setExposedHeaders(EXPOSED_HEADERS);
+        configuration.setAllowCredentials(true);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    @Bean
+    @Lazy(false)
+    ApplicationEventMulticaster applicationEventMulticaster() {
+        SimpleApplicationEventMulticaster eventMulticaster = new SimpleApplicationEventMulticaster();
+        eventMulticaster.setTaskExecutor(new SimpleAsyncTaskExecutor());
+        return eventMulticaster;
     }
 
     @Bean

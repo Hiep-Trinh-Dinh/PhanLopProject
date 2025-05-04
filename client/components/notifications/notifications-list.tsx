@@ -2,35 +2,11 @@
 
 import { useEffect } from "react";
 import NotificationItem from "./notification-item";
-
-interface User {
-  id: number;
-  name: string;
-  username: string;
-  avatar: string;
-}
-
-interface Notification {
-  id: number;
-  type:
-    | "like"
-    | "comment"
-    | "friend_request"
-    | "friend_accepted"
-    | "group_invite"
-    | "mention";
-  content: string;
-  time: string;
-  isRead: boolean;
-  user: User;
-  link?: string;
-  actionLink?: string;
-  actionText?: string;
-}
+import { NotificationDto, NotificationApi } from "@/app/lib/api";
 
 interface NotificationsListProps {
-  notifications: Notification[]; // ✅ Thêm danh sách thông báo
-  setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>; // ✅ Thêm setter
+  notifications: NotificationDto[];
+  setNotifications: React.Dispatch<React.SetStateAction<NotificationDto[]>>;
   onUpdateUnread: (newUnreadCount: number) => void;
 }
 
@@ -39,140 +15,89 @@ export default function NotificationsList({
   setNotifications,
   onUpdateUnread,
 }: NotificationsListProps) {
+  // Cập nhật số lượng thông báo chưa đọc
   useEffect(() => {
     const unreadCount = notifications.filter((n) => !n.isRead).length;
     onUpdateUnread(unreadCount);
   }, [notifications, onUpdateUnread]);
 
-  const handleMarkAsRead = (id: number) => {
-    setNotifications((prev) =>
-      prev.map((notification) =>
-        notification.id === id
-          ? { ...notification, isRead: true }
-          : notification
-      )
-    );
+  // Xử lý đánh dấu đã đọc
+  const handleMarkAsRead = async (id: number) => {
+    try {
+      // Cập nhật UI trước
+      setNotifications((prev) =>
+        prev.map((notification) =>
+          notification.id === id
+            ? { ...notification, isRead: true }
+            : notification
+        )
+      );
+      
+      // Gọi API để đánh dấu là đã đọc
+      await NotificationApi.markAsRead(id);
+    } catch (error) {
+      console.error("Lỗi khi đánh dấu thông báo đã đọc:", error);
+    }
   };
 
-  const handleAcceptRequest = (id: number) => {
-    setNotifications((prev) =>
-      prev.map((notification) =>
-        notification.id === id
-          ? { ...notification, isRead: true, type: "friend_accepted" }
-          : notification
-      )
-    );
-
-    // Gọi hành động ngay lập tức thay vì phải click lại sau khi nó chuyển sang "Đã đọc"
-    console.log(`Friend request ${id} accepted`);
+  // Xử lý đánh dấu tất cả đã đọc
+  const handleMarkAllAsRead = async () => {
+    try {
+      // Cập nhật UI trước
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      
+      // Gọi API để đánh dấu tất cả đã đọc
+      await NotificationApi.markAllAsRead();
+    } catch (error) {
+      console.error("Lỗi khi đánh dấu tất cả thông báo đã đọc:", error);
+    }
   };
 
-  const handleRejectRequest = (id: number) => {
-    setNotifications((prev) =>
-      prev.filter((notification) => notification.id !== id)
-    );
-    console.log(`Friend request ${id} rejected`);
-  };
-
-  const handleMarkAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-  };
-  interface NotificationsHeaderProps {
-    unreadCount: number;
-    onMarkAllAsRead: () => void;
-  }
-
-  const NotificationsHeader: React.FC<NotificationsHeaderProps> = ({
-    unreadCount,
-    onMarkAllAsRead,
-  }) => {
-    return (
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-white">
-          Chưa đọc ({unreadCount})
-        </h3>
-        <button
-          onClick={onMarkAllAsRead}
-          className="text-blue-400 hover:underline text-sm"
-        >
-          Mark all as read
-        </button>
-      </div>
-    );
-  };
-
+  // Phân chia thông báo thành đã đọc và chưa đọc
   const unreadNotifications = notifications.filter((n) => !n.isRead);
   const readNotifications = notifications.filter((n) => n.isRead);
 
   return (
-    <div className="bg-gray-900 p-4 rounded-lg shadow-lg max-h-96 overflow-y-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-white select-none pointer-events-none">
-          Chưa đọc ({unreadNotifications.length})
-        </h3>
-        {unreadNotifications.length > 0 && (
-          <button
-            onClick={handleMarkAllAsRead}
-            className="text-blue-400 font-semibold hover:underline text-sm select-none"
-          >
-            Mark all as read
-          </button>
-        )}
-      </div>
+    <div className="bg-gray-900 p-4 rounded-lg overflow-y-auto">
+      {/* Phần thông báo chưa đọc */}
+      {unreadNotifications.length > 0 && (
+        <>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-white">
+              Chưa đọc ({unreadNotifications.length})
+            </h3>
+            <button
+              onClick={handleMarkAllAsRead}
+              className="text-blue-400 font-semibold hover:underline text-sm"
+            >
+              Đánh dấu đã đọc
+            </button>
+          </div>
 
-      {unreadNotifications.length > 0 ? (
-        <div className="mb-4 space-y-4">
-          {unreadNotifications.map((notification) => (
-            <NotificationItem
-              key={notification.id}
-              {...notification}
-              unreadCount={unreadNotifications.length}
-              onMarkAsRead={handleMarkAsRead}
-              onAcceptFriendRequest={() =>
-                console.log("Friend request accepted")
-              } // Cập nhật hàm thực tế nếu có
-              onRejectFriendRequest={() =>
-                console.log("Friend request rejected")
-              }
-              onMarkAllAsRead={() =>
-                setNotifications(
-                  notifications.map((n) => ({ ...n, isRead: true }))
-                )
-              }
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-col items-center text-gray-400 text-sm py-6 animate-fade-in">
-          <p className="m-1 select-none pointer-events-none">
-            No new notifications
-          </p>
-        </div>
+          <div className="mb-4 space-y-4">
+            {unreadNotifications.map((notification) => (
+              <NotificationItem
+                key={notification.id}
+                notification={notification}
+                onMarkAsRead={handleMarkAsRead}
+              />
+            ))}
+          </div>
+        </>
       )}
 
+      {/* Phần thông báo đã đọc */}
       {readNotifications.length > 0 && (
         <>
-          <h3 className="text-lg font-semibold text-white mb-2 select-none pointer-events-none">
-            Read
+          <h3 className="text-lg font-semibold text-white mb-2">
+            Đã đọc
           </h3>
           <div className="space-y-4">
             {readNotifications.map((notification) => (
               <NotificationItem
                 key={notification.id}
-                {...notification}
-                unreadCount={unreadNotifications.length}
+                notification={notification}
                 onMarkAsRead={handleMarkAsRead}
-                onAcceptFriendRequest={() =>
-                  handleAcceptRequest(notification.id)
-                }
-                onRejectFriendRequest={() =>
-                  handleRejectRequest(notification.id)
-                }
-                onMarkAllAsRead={() =>
-                  setNotifications(
-                    notifications.map((n) => ({ ...n, isRead: true }))
-                  )
-                }
               />
             ))}
           </div>

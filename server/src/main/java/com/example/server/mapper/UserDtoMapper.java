@@ -9,10 +9,12 @@ import com.example.server.dto.WorkExperienceDto;
 import com.example.server.models.Education;
 import com.example.server.models.User;
 import com.example.server.models.WorkExperience;
+import org.springframework.stereotype.Component;
 
+@Component
 public class UserDtoMapper {
 
-    public static UserDto toUserDto(User user) {
+    public UserDto toUserDto(User user) {
         if (user == null) return null;
 
         UserDto userDto = mapToUserDto(user);
@@ -29,15 +31,15 @@ public class UserDtoMapper {
         return userDto;
     }
 
-    public static List<UserDto> toUserDtos(List<User> users) {
+    public List<UserDto> toUserDtos(List<User> users) {
         if (users == null) return List.of();
 
         return users.stream()
-                   .map(UserDtoMapper::mapToUserDto)
+                   .map(this::mapToUserDto)
                    .collect(Collectors.toList());
     }
 
-    private static List<WorkExperienceDto> mapWorkExperiences(List<WorkExperience> works) {
+    private List<WorkExperienceDto> mapWorkExperiences(List<WorkExperience> works) {
         if (works == null) return List.of();
         return works.stream()
             .map(w -> new WorkExperienceDto(
@@ -50,7 +52,7 @@ public class UserDtoMapper {
             .collect(Collectors.toList());
     }
 
-    private static List<EducationDto> mapEducations(List<Education> educations) {
+    private List<EducationDto> mapEducations(List<Education> educations) {
         if (educations == null) return List.of();
         return educations.stream()
             .map(e -> new EducationDto(
@@ -63,7 +65,7 @@ public class UserDtoMapper {
             .collect(Collectors.toList());
     }
 
-    private static UserDto mapToUserDto(User user) {
+    private UserDto mapToUserDto(User user) {
         UserDto userDto = new UserDto();
         userDto.setId(user.getId());
         userDto.setFirstName(user.getFirstName());
@@ -79,7 +81,7 @@ public class UserDtoMapper {
         // Xử lý gender - chuyển từ enum sang giá trị frontend
         userDto.setGender(user.getGender() != null ? user.getGender().getFrontendValue() : null);
         
-        userDto.setIsOnline(user.getIsOnline());
+        userDto.setIsOnline(user.isOnline());
         userDto.setLastSeen(user.getLastSeen());
         userDto.setPostsCount(user.getPostsCount());
         userDto.setCreatedAt(user.getCreatedAt());

@@ -61,8 +61,8 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Gender gender;
 
-    @Column(name = "is_online")
-    private Boolean isOnline = false;
+    @Column(name = "is_online", nullable = false)
+    private int isOnline = 0;
 
     @Column(name = "last_seen")
     private LocalDateTime lastSeen;
@@ -152,7 +152,7 @@ public class User {
     private List<User> following = new ArrayList<>();
 
     // Danh sách bạn bè (friends)
-    @ManyToMany
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
         name = "user_friends",
         joinColumns = @JoinColumn(name = "user_id"),
@@ -170,4 +170,53 @@ public class User {
     private String currentCity;
     private String hometown;
     private String relationshipStatus;
+
+    public int isOnline() {
+        return isOnline;
+    }
+    
+    public void setOnline(int online) {
+        isOnline = online;
+    }
+    
+    /**
+     * Kiểm tra xem người dùng có phải là admin không dựa trên email
+     * @return true nếu là admin, false nếu không phải
+     */
+    public boolean isAdmin() {
+        if (email != null) {
+            // Kiểm tra chính xác đuôi email - KHÔNG phải @gmail.com
+            return email.endsWith("@admin.com") || email.equals("admin@phanlop.com");
+        }
+        return false;
+    }
+    
+    /**
+     * Lấy tên đăng nhập của người dùng (dùng email hoặc kết hợp firstName và lastName)
+     * @return username của người dùng
+     */
+    public String getUsername() {
+        if (email != null) {
+            return email;
+        }
+        
+        // Nếu không có email, dùng firstName và lastName để tạo username
+        StringBuilder username = new StringBuilder();
+        if (firstName != null) {
+            username.append(firstName);
+        }
+        if (lastName != null) {
+            if (username.length() > 0) {
+                username.append(" ");
+            }
+            username.append(lastName);
+        }
+        
+        // Nếu không có thông tin nào, trả về "unknown"
+        if (username.length() == 0) {
+            return "unknown";
+        }
+        
+        return username.toString();
+    }
 }
