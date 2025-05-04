@@ -35,10 +35,36 @@ public class EmailService {
                     "Đội ngũ hỗ trợ");
 
             mailSender.send(message);
-            logger.info("Email xac minh da duoc gui thanh cong den {}", toEmail);
+            logger.info("Email xác minh đã được gửi thành công đến {}", toEmail);
         } catch (MailException e) {
             logger.error("Lỗi khi gửi email xác minh đến {}: {}", toEmail, e.getMessage());
             throw new RuntimeException("Không thể gửi email xác minh: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Gửi email chứa liên kết đặt lại mật khẩu
+     * @param toEmail Địa chỉ email của người nhận
+     * @param resetLink Liên kết để đặt lại mật khẩu
+     */
+    public void sendResetPasswordEmail(String toEmail, String resetLink) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(toEmail);
+            message.setSubject("Đặt lại mật khẩu của bạn");
+            message.setText("Chào bạn,\n\n" +
+                    "Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn. " +
+                    "Vui lòng nhấp vào liên kết dưới đây để đặt lại mật khẩu:\n\n" +
+                    resetLink + "\n\n" +
+                    "Liên kết này sẽ hết hạn sau 5 phút. Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.\n\n" +
+                    "Trân trọng,\n" +
+                    "Đội ngũ hỗ trợ");
+
+            mailSender.send(message);
+            logger.info("Email đặt lại mật khẩu đã được gửi thành công đến {}", toEmail);
+        } catch (MailException e) {
+            logger.error("Lỗi khi gửi email đặt lại mật khẩu đến {}: {}", toEmail, e.getMessage());
+            throw new RuntimeException("Không thể gửi email đặt lại mật khẩu: " + e.getMessage());
         }
     }
 

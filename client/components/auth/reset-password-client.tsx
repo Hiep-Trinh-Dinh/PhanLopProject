@@ -1,37 +1,50 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import toast from "react-hot-toast"
 
-export default function ForgotPasswordClient() {
+export default function ResetPasswordClient() {
   const [mounted, setMounted] = useState(false)
-  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const searchParams = useSearchParams()
+  const token = searchParams.get("token")
 
   useEffect(() => {
     setMounted(true)
-  }, [])
+    if (!token) {
+      toast.error("Liên kết không hợp lệ hoặc đã hết hạn.")
+    }
+  }, [token])
 
   useEffect(() => {
     setTimeout(() => {
-      document.getElementById("email")?.setAttribute("autocomplete", "off")
+      document.getElementById("password")?.setAttribute("autocomplete", "new-password")
+      document.getElementById("confirm-password")?.setAttribute("autocomplete", "new-password")
     }, 100)
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (password !== confirmPassword) {
+      toast.error("Mật khẩu xác nhận không khớp")
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/auth/forgot-password", {
+      const response = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ token, newPassword: password }),
       })
 
       const data = await response.json()
@@ -42,7 +55,7 @@ export default function ForgotPasswordClient() {
       setIsSubmitted(true)
       toast.success(data.message)
     } catch (error: any) {
-      toast.error(error.message || "Có lỗi xảy ra khi gửi yêu cầu")
+      toast.error(error.message || "Có lỗi xảy ra khi đặt lại mật khẩu")
     } finally {
       setIsLoading(false)
     }
@@ -69,11 +82,11 @@ export default function ForgotPasswordClient() {
                 <ArrowLeft size={24} />
               </Link>
               <h2 className="text-center text-3xl text-white select-none pointer-events-none">
-                Forgot Password
+                Reset Password
               </h2>
             </div>
             <p className="text-center text-lg text-gray-400 mt-2 select-none pointer-events-none">
-              Enter your email to reset your password
+              Enter your new password
             </p>
           </div>
 
@@ -82,24 +95,43 @@ export default function ForgotPasswordClient() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="relative w-full">
                   <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onFocus={(e) => e.target.removeAttribute("readonly")}
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
-                    readOnly
                     className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500"
                   />
                   <label
-                    htmlFor="email"
+                    htmlFor="password"
                     className={`absolute left-2 ${
-                      email
+                      password
                         ? "top-0 text-blue-500 text-sm"
                         : "top-5 text-gray-400 text-sm"
                     } transition-all peer-focus:top-0 peer-focus:text-blue-500 peer-focus:text-sm select-none pointer-events-none`}
                   >
-                    Email
+                    New Password
+                  </label>
+                </div>
+
+                <div className="relative w-full">
+                  <input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className="peer w-full bg-transparent border-b border-gray-500 rounded-md text-white px-2 pb-1 pt-5 focus:outline-none focus:border-blue-500"
+                  />
+                  <label
+                    htmlFor="confirm-password"
+                    className={`absolute left-2 ${
+                      confirmPassword
+                        ? "top-0 text-blue-500 text-sm"
+                        : "top-5 text-gray-400 text-sm"
+                    } transition-all peer-focus:top-0 peer-focus:text-blue-500 peer-focus:text-sm select-none pointer-events-none`}
+                  >
+                    Confirm Password
                   </label>
                 </div>
 
@@ -108,13 +140,13 @@ export default function ForgotPasswordClient() {
                   disabled={isLoading}
                   className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? "Sending..." : "Send Reset Link"}
+                  {isLoading ? "Resetting..." : "Reset Password"}
                 </button>
               </form>
             ) : (
               <div className="text-center space-y-4">
                 <p className="text-gray-300">
-                  We've sent password reset instructions to your email.
+                  Your password has been successfully reset.
                 </p>
                 <Link
                   href="/login"

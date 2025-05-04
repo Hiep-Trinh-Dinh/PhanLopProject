@@ -2,6 +2,7 @@ package com.example.server.controllers;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,8 +69,13 @@ public class AuthController {
     @Value("${jwt.cookie.expiration:604800}") // 7 ngày (giây)
     private int cookieExpiration;
 
+    @Value("${app.frontend.url:http://localhost:3000}")
+    private String frontendUrl;
+
     private static final String COOKIE_NAME = "auth_token";
     private static final String BLACKLIST_PREFIX = "blacklist_token:";
+    private static final String RESET_TOKEN_PREFIX = "reset_token:";
+    private static final long RESET_TOKEN_EXPIRY = 5 * 60 ; 
 
     @PostMapping("/signup")
     public ResponseEntity<AuthResponse> createUserHandler(@Valid @RequestBody SignupRequest signupRequest) throws UserException {
@@ -228,6 +234,73 @@ public class AuthController {
         clearJwtCookie(response);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<AuthResponse> forgotPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        if (email == null) {
+            return new ResponseEntity<>(new AuthResponse("Thiếu email.", false), HttpStatus.BAD_REQUEST);
+        }
+
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            return new ResponseEntity<>(new AuthResponse("Email không tồn tại.", false), HttpStatus.BAD_REQUEST);
+        }
+
+        // Tạo token reset mật khẩu
+        String resetToken = UUID.randomUUID().toString();
+        redisTemplate.opsForValue().set(
+            RESET_TOKEN_PREFIX + resetToken,
+            email,
+            RESET_TOKEN_EXPIRY,
+            TimeUnit.SECONDS
+        );
+
+        // Tạo liên kết reset
+        String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
+
+        // Gửi email
+        emailService.sendResetPasswordEmail(email, resetLink);
+
+        return new ResponseEntity<>(
+            new AuthResponse("Đã gửi liên kết reset mật khẩu đến email của bạn.", true),
+            HttpStatus.OK
+        );
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<AuthResponse> resetPassword(@RequestBody Map<String, String> request) {
+        String token = request.get("token");
+        String newPassword = request.get("newPassword");
+
+        if (token == null || newPassword == null) {
+            return new ResponseEntity<>(new AuthResponse("Thiếu token hoặc mật khẩu mới.", false), HttpStatus.BAD_REQUEST);
+        }
+
+        // Kiểm tra token trong Redis
+        String email = redisTemplate.opsForValue().get(RESET_TOKEN_PREFIX + token);
+        if (email == null) {
+            return new ResponseEntity<>(new AuthResponse("Token không hợp lệ hoặc đã hết hạn.", false), HttpStatus.BAD_REQUEST);
+        }
+
+        // Tìm user
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            return new ResponseEntity<>(new AuthResponse("Người dùng không tồn tại.", false), HttpStatus.BAD_REQUEST);
+        }
+
+        // Cập nhật mật khẩu
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // Xóa token khỏi Redis
+        redisTemplate.delete(RESET_TOKEN_PREFIX + token);
+
+        return new ResponseEntity<>(
+            new AuthResponse("Đặt lại mật khẩu thành công.", true),
+            HttpStatus.OK
+        );
     }
 
     @GetMapping("/me")

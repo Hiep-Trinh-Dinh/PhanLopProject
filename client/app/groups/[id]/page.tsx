@@ -69,7 +69,9 @@ export default async function GroupPage({ params }: GroupPageProps) {
       <div className="mx-auto max-w-5xl">
         <GroupHeader groupId={group.id} />
         <GroupTabs groupId={group.id} />
-        <CreatePostCard groupId={group.id} />
+        <div className="mb-6">
+          <CreatePostCard groupId={group.id} />
+        </div>
         <GroupPostFeed groupId={group.id} />
       </div>
     </MainLayout>

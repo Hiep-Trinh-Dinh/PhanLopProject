@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, SetStateAction } from "react"
 import dynamic from 'next/dynamic'
+import { NotificationDto } from "../lib/api"
 
 const NotificationsList = dynamic(() => import("@/components/notifications/notifications-list"), {
   ssr: false
@@ -77,10 +78,9 @@ export default function NotificationsContent() {
     <div className="mx-auto max-w-3xl space-y-6">
       <NotificationsHeader/>
       <NotificationsList 
-        notifications={notifications}
-        setNotifications={setNotifications}
-        onUpdateUnread={setUnreadCount}
-      />
+        onUpdateUnread={setUnreadCount} notifications={[]} setNotifications={function (value: SetStateAction<NotificationDto[]>): void {
+          throw new Error("Function not implemented.")
+        } }      />
     </div>
   )
 }
