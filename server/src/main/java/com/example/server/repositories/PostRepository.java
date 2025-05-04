@@ -91,4 +91,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     Page<Post> findByPrivacyOrUserIdAndIsActiveFalseAndGroupIsNull(Privacy public1, Long userId, Pageable pageable);
 
     Page<Post> findByPrivacyAndIsActiveFalseAndGroupIsNull(Privacy public1, Pageable pageable);
+
+    Page<Post> findByGroupIdAndIsActiveTrue(Long groupId, Pageable pageable);
 }

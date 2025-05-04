@@ -21,7 +21,6 @@ export default function NotificationsDropdown() {
   // WebSocket subscription
   const notificationSubscriptionRef = useRef<StompSubscription | null>(null);
   const subscriptionAttempts = useRef(0);
-  const maxSubscriptionAttempts = 5;
   const subscriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Refs để theo dõi đã thử đăng ký hay chưa

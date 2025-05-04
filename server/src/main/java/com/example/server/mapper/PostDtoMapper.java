@@ -36,6 +36,7 @@ public class PostDtoMapper {
         postDto.setCreatedAt(post.getCreatedAt());
         postDto.setUpdatedAt(post.getUpdatedAt());
         postDto.setPrivacy(post.getPrivacy().toString());
+        postDto.setGroupId(post.getGroup() != null ? post.getGroup().getId() : null);
         
         if (post.getGroup() != null) {
             postDto.setGroupId(post.getGroup().getId());
