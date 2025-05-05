@@ -1,5 +1,7 @@
 package com.example.server.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -12,36 +14,32 @@ import java.nio.file.Paths;
 
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
+    private static final Logger logger = LoggerFactory.getLogger(WebMvcConfig.class);
 
     @Value("${app.video.storage.path:./uploads/videos}")
     private String videoStoragePath;
 
-    @SuppressWarnings("null")
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         try {
-            // Tao duong dan tuyet doi tu cau hinh
+            // Chuyển đổi đường dẫn sang tuyệt đối và chuẩn hóa
             Path videoDir = Paths.get(videoStoragePath).toAbsolutePath().normalize();
-            
-            // Kiem tra va tao thu muc neu khong ton tai
             File videoDirFile = videoDir.toFile();
+
+            // Kiểm tra và tạo thư mục nếu không tồn tại
             if (!videoDirFile.exists()) {
-                System.out.println("Thu muc video khong ton tai, dang tao: " + videoDir);
+                logger.info("Thu muc video khong ton tai, dang tao: {}", videoDir);
                 Files.createDirectories(videoDir);
             }
-    
+
+            // Kiểm tra quyền đọc/ghi
             if (!videoDirFile.canRead() || !videoDirFile.canWrite()) {
                 System.err.println("CANH BAO: Khong co quyen doc/ghi thu muc video: " + videoDir);
             }
-    
+
             String videoAbsolutePath = videoDirFile.getAbsolutePath();
-            
-            // Dam bao duong dan ket thuc bang dau phan cach
-            if (!videoAbsolutePath.endsWith(File.separator)) {
-                videoAbsolutePath += File.separator;
-            }
-            
-            // Dang ky resource handler cho video
+
+            // Đăng ký resource handler cho video
             registry.addResourceHandler("/videos/**")
                     .addResourceLocations("file:" + videoAbsolutePath)
                     .setCachePeriod(3600); // Cache trong 1 gio
@@ -57,5 +55,5 @@ public class WebMvcConfig implements WebMvcConfigurer {
             System.err.println("LOI khi cau hinh thu muc video: " + e.getMessage());
             e.printStackTrace();
         }
-    }    
-} 
+    }
+}

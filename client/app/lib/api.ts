@@ -912,15 +912,16 @@ export const PostApi = {
     privacy: string
   ): Promise<PostDto> => {
     try {
+      const formData = new FormData();
+      const postDto = { content, privacy };
+      formData.append('post', JSON.stringify(postDto));
+  
       const response = await fetch(`${API_BASE_URL}/api/posts/${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        body: formData,
         credentials: "include",
-        body: JSON.stringify({ content, privacy }),
       });
-
+  
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Error response:", errorText);
@@ -934,9 +935,12 @@ export const PostApi = {
         if (response.status === 404) {
           throw new Error("Post not found");
         }
+        if (response.status === 415) {
+          throw new Error("Unsupported Media Type: Check request format");
+        }
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
-
+  
       return await response.json();
     } catch (error) {
       console.error("Error updating post:", error);

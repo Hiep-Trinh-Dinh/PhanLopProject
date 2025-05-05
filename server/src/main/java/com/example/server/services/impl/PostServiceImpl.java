@@ -37,6 +37,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -192,36 +193,40 @@ public class PostServiceImpl implements PostService {
 
                 String originalFilename = file.getOriginalFilename();
                 logger.info("Xử lý tệp: {}, kích thước: {}, loại: {}", 
-                            originalFilename, file.getSize(), file.getContentType());
+                    originalFilename, file.getSize(), file.getContentType());
 
                 try {
                     PostMedia.MediaType mediaType = file.getContentType().startsWith("image/") 
                             ? PostMedia.MediaType.IMAGE : PostMedia.MediaType.VIDEO;
 
-                    String uniqueFilename = UUID.randomUUID().toString() + 
-                            (originalFilename != null && originalFilename.contains(".") 
-                             ? originalFilename.substring(originalFilename.lastIndexOf(".")) : ".jpg");
+                    String uniqueFilename = UUID.randomUUID().toString();
+                    String fileExtension = originalFilename != null && originalFilename.contains(".") 
+                            ? originalFilename.substring(originalFilename.lastIndexOf(".")) : 
+                            (mediaType == PostMedia.MediaType.VIDEO ? ".mp4" : ".jpg");
 
-                    String storagePath = mediaType == PostMedia.MediaType.VIDEO ? getVideoStoragePath() : "upload/posts";
+                    String storagePath = mediaType == PostMedia.MediaType.VIDEO ? 
+                        getVideoStoragePath() : "upload/posts";
                     File directory = new File(storagePath);
                     if (!directory.exists()) {
                         directory.mkdirs();
                     }
 
-                    Path targetPath = Paths.get(storagePath, uniqueFilename);
+                    String fileName = uniqueFilename + fileExtension;
+                    Path targetPath = Paths.get(storagePath, fileName);
                     Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
                     logger.info("Đã lưu tệp tại: {}", targetPath);
+
+                    String publicUrl = "/videos/" + fileName;
 
                     PostMedia media = new PostMedia();
                     media.setPost(post);
                     media.setMediaType(mediaType);
-                    media.setMediaUrl(targetPath.toString());
+                    media.setMediaUrl(publicUrl);
                     media.setMediaOrder(mediaEntities.size());
 
                     PostMedia savedMedia = postMediaRepository.save(media);
                     mediaEntities.add(savedMedia);
-                    logger.info("Đã lưu thông tin media với id: {}", savedMedia.getId());
-
+                    logger.info("Đã lưu thông tin media với id: {}, url: {}", savedMedia.getId(), publicUrl);
                 } catch (IOException e) {
                     logger.error("Lỗi khi lưu tệp {}: {}", originalFilename, e.getMessage(), e);
                 }
@@ -349,69 +354,6 @@ public class PostServiceImpl implements PostService {
             default:
                 logger.warn("Unknown privacy setting: {}", post.getPrivacy());
                 return false;
-        }
-    }
-
-    /**
-     * Gets the configured video storage path from application.properties
-     * @return the path where videos should be stored
-     */
-    private String getVideoStoragePath() {
-        // Try to use the configured path first
-        String path = this.videoStoragePath;
-        
-        logger.info("Configured video storage path: {}", path);
-        
-        try {
-            // Nếu đường dẫn bắt đầu bằng dấu ".", tạo đường dẫn tuyệt đối từ thư mục làm việc hiện tại
-            if (path.startsWith("./")) {
-                String workingDir = System.getProperty("user.dir");
-                path = workingDir + path.substring(1);
-                logger.info("Resolved relative path to absolute path: {}", path);
-            }
-            
-            // Create a File object for the path
-            File directory = new File(path);
-            
-            // Check if the directory exists and is writable
-            if (!directory.exists()) {
-                logger.info("Video storage directory doesn't exist: {}, attempting to create it", path);
-                boolean created = directory.mkdirs();
-                if (!created) {
-                    logger.warn("Failed to create video directory: {}", path);
-                    // Fall back to a directory in the user's home directory
-                    path = System.getProperty("java.io.tmpdir") + "/phan-lop-videos";
-                    logger.info("Falling back to temporary directory: {}", path);
-                    directory = new File(path);
-                    directory.mkdirs();
-                }
-            }
-            
-            // Verify the final directory is writable
-            if (!directory.canWrite()) {
-                logger.warn("Video directory is not writable: {}", path);
-                // Fall back to a directory in the temporary directory
-                path = System.getProperty("java.io.tmpdir") + "/phan-lop-videos";
-                logger.info("Falling back to temporary directory: {}", path);
-                directory = new File(path);
-                directory.mkdirs();
-            }
-            
-            // Ensure the final directory exists
-            if (!directory.exists()) {
-                logger.warn("Could not create any valid video storage directory");
-                throw new RuntimeException("Failed to create video storage directory");
-            }
-            
-            logger.info("Using video storage directory: {}", path);
-            return path;
-        } catch (Exception e) {
-            logger.error("Error setting up video storage path: {}", e.getMessage(), e);
-            // Last resort - use temp directory
-            String tempPath = System.getProperty("java.io.tmpdir") + "/phan-lop-videos";
-            logger.info("Using emergency fallback to temp directory: {}", tempPath);
-            new File(tempPath).mkdirs();
-            return tempPath;
         }
     }
 
@@ -590,26 +532,21 @@ public class PostServiceImpl implements PostService {
         if (postDto.getGroupId() != null) {
             group = groupRepository.findById(postDto.getGroupId().longValue())
                     .orElseThrow(() -> new UserException("Không tìm thấy nhóm"));
-            groupMemberRepository.findByGroupIdAndUserId(postDto.getGroupId().longValue(), userId).orElseThrow(() -> new UserException("Bạn không phải là thành viên của nhóm này"));
+            groupMemberRepository.findByGroupIdAndUserId(postDto.getGroupId().longValue(), userId)
+                    .orElseThrow(() -> new UserException("Bạn không phải là thành viên của nhóm này"));
         }
 
         Post post = new Post();
         post.setUser(user);
         post.setContent(postDto.getContent());
-        post.setCreatedAt(java.time.LocalDateTime.now());
+        post.setCreatedAt(LocalDateTime.now());
         post.setIsActive(false);
-        post.setGroup(group); // Liên kết bài viết với nhóm nếu có
+        post.setGroup(group);
 
         // Đặt quyền riêng tư
         if (postDto.getGroupId() != null) {
-            // Nếu là bài viết nhóm, quyền riêng tư phải phù hợp với nhóm
-            if (group != null) {
-                post.setPrivacy(group.getPrivacy() == Group.Privacy.PRIVATE ? Post.Privacy.ONLY_ME : Post.Privacy.PUBLIC);
-            } else {
-                post.setPrivacy(Post.Privacy.PUBLIC);
-            }
+            post.setPrivacy(group.getPrivacy() == Group.Privacy.PRIVATE ? Post.Privacy.ONLY_ME : Post.Privacy.PUBLIC);
         } else {
-            // Bài viết thông thường
             if (postDto.getPrivacy() != null) {
                 try {
                     post.setPrivacy(Post.Privacy.valueOf(postDto.getPrivacy()));
@@ -622,15 +559,40 @@ public class PostServiceImpl implements PostService {
             }
         }
 
-        // Lưu post để có id khi xử lý media
+        // Lưu post để có id
         Post savedPost = postRepository.save(post);
         logger.info("Đã lưu bài viết với id: {}", savedPost.getId());
 
-        // Xử lý các tệp media nếu có
+        List<PostMedia> mediaEntities = new ArrayList<>();
+
+        // Xử lý media từ postDto (hình ảnh từ Cloudinary)
+        if (postDto.getMedia() != null && !postDto.getMedia().isEmpty()) {
+            logger.info("Xử lý {} media từ postDto", postDto.getMedia().size());
+            for (PostDto.MediaDto mediaDto : postDto.getMedia()) {
+                if ("IMAGE".equalsIgnoreCase(mediaDto.getMediaType()) && mediaDto.getUrl() != null && !mediaDto.getUrl().isEmpty()) {
+                    PostMedia media = new PostMedia();
+                    media.setPost(savedPost);
+                    media.setMediaType(PostMedia.MediaType.IMAGE);
+                    media.setMediaUrl(mediaDto.getUrl());
+                    media.setMediaOrder(mediaEntities.size());
+                    try {
+                        PostMedia savedMedia = postMediaRepository.save(media);
+                        mediaEntities.add(savedMedia);
+                        logger.info("Đã lưu media từ Cloudinary với id: {}, url: {}", savedMedia.getId(), mediaDto.getUrl());
+                    } catch (Exception e) {
+                        logger.error("Lỗi khi lưu media từ Cloudinary: {}", e.getMessage(), e);
+                    }
+                } else {
+                    logger.warn("Bỏ qua media không hợp lệ: type={}, url={}", mediaDto.getMediaType(), mediaDto.getUrl());
+                }
+            }
+        } else {
+            logger.info("Không có media từ postDto");
+        }
+
+        // Xử lý file upload (video)
         if (mediaFiles != null && !mediaFiles.isEmpty()) {
             logger.info("Xử lý {} tệp media đính kèm", mediaFiles.size());
-            List<PostMedia> mediaEntities = new ArrayList<>();
-
             for (MultipartFile file : mediaFiles) {
                 if (file.isEmpty()) {
                     logger.warn("Bỏ qua tệp rỗng");
@@ -642,83 +604,94 @@ public class PostServiceImpl implements PostService {
                     originalFilename, file.getSize(), file.getContentType());
 
                 try {
-                    PostMedia.MediaType mediaType;
-                    if (file.getContentType() != null) {
-                        if (file.getContentType().startsWith("image/")) {
-                            mediaType = PostMedia.MediaType.IMAGE;
-                        } else if (file.getContentType().startsWith("video/")) {
-                            mediaType = PostMedia.MediaType.VIDEO;
-                        } else {
-                            mediaType = PostMedia.MediaType.IMAGE;
-                        }
-                    } else {
-                        if (originalFilename != null && 
-                            (originalFilename.endsWith(".jpg") || originalFilename.endsWith(".jpeg") || 
-                             originalFilename.endsWith(".png") || originalFilename.endsWith(".gif"))) {
-                            mediaType = PostMedia.MediaType.IMAGE;
-                        } else if (originalFilename != null && 
-                                 (originalFilename.endsWith(".mp4") || originalFilename.endsWith(".avi") || 
-                                  originalFilename.endsWith(".mov") || originalFilename.endsWith(".wmv"))) {
-                            mediaType = PostMedia.MediaType.VIDEO;
-                        } else {
-                            mediaType = PostMedia.MediaType.IMAGE;
-                        }
-                    }
+                    PostMedia.MediaType mediaType = file.getContentType() != null && 
+                        file.getContentType().startsWith("video/") ? 
+                        PostMedia.MediaType.VIDEO : PostMedia.MediaType.IMAGE;
 
                     String uniqueFilename = UUID.randomUUID().toString();
-                    String fileExtension = "";
+                    String fileExtension = originalFilename != null && originalFilename.contains(".") ?
+                        originalFilename.substring(originalFilename.lastIndexOf(".")) : 
+                        (mediaType == PostMedia.MediaType.VIDEO ? ".mp4" : ".jpg");
 
-                    if (originalFilename != null && originalFilename.contains(".")) {
-                        fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
-                    } else if (file.getContentType() != null) {
-                        if (file.getContentType().equals("image/jpeg")) fileExtension = ".jpg";
-                        else if (file.getContentType().equals("image/png")) fileExtension = ".png";
-                        else if (file.getContentType().equals("video/mp4")) fileExtension = ".mp4";
-                        else fileExtension = "." + file.getContentType().split("/")[1];
+                    String storagePath = mediaType == PostMedia.MediaType.VIDEO ? 
+                        getVideoStoragePath() : "upload/posts";
+                    File directory = new File(storagePath);
+                    if (!directory.exists()) {
+                        directory.mkdirs();
+                    }
+                    if (!directory.canWrite()) {
+                        logger.error("Cannot write to directory: {}", storagePath);
+                        throw new IOException("Storage directory is not writable: " + storagePath);
                     }
 
-                    uniqueFilename = uniqueFilename + fileExtension;
-
-                    String storagePath;
-                    if (mediaType == PostMedia.MediaType.VIDEO) {
-                        storagePath = getVideoStoragePath();
-                    } else {
-                        storagePath = "upload/posts";
-                        File directory = new File(storagePath);
-                        if (!directory.exists()) {
-                            directory.mkdirs();
-                        }
-                    }
-
-                    Path targetPath = Paths.get(storagePath, uniqueFilename);
+                    String fileName = uniqueFilename + fileExtension;
+                    Path targetPath = Paths.get(storagePath, fileName);
                     Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
                     logger.info("Đã lưu tệp tại: {}", targetPath);
+
+                    // Tạo URL công khai
+                    String publicUrl = "/videos/" + fileName;
 
                     PostMedia media = new PostMedia();
                     media.setPost(savedPost);
                     media.setMediaType(mediaType);
-                    media.setMediaUrl(targetPath.toString());
+                    media.setMediaUrl(publicUrl);
                     media.setMediaOrder(mediaEntities.size());
-
                     PostMedia savedMedia = postMediaRepository.save(media);
                     mediaEntities.add(savedMedia);
                     logger.info("Đã lưu thông tin media với id: {}", savedMedia.getId());
-
                 } catch (IOException e) {
                     logger.error("Lỗi khi lưu tệp {}: {}", originalFilename, e.getMessage(), e);
                 }
             }
-
-            savedPost.setMedia(mediaEntities);
         } else {
             logger.info("Không có tệp media nào được tải lên");
         }
 
-        // Tải lại post từ cơ sở dữ liệu để đảm bảo có tất cả dữ liệu
+        savedPost.setMedia(mediaEntities);
         Post finalPost = postRepository.findById(savedPost.getId())
                 .orElseThrow(() -> new UserException("Không thể tìm thấy bài viết vừa tạo"));
-
         return postDtoMapper.toPostDto(finalPost, user);
+    }
+
+    private String getVideoStoragePath() {
+        String path = this.videoStoragePath;
+        logger.info("Configured video storage path: {}", path);
+
+        try {
+            if (path.startsWith("./")) {
+                String workingDir = System.getProperty("user.dir");
+                path = workingDir + path.substring(1);
+                logger.info("Resolved relative path to absolute path: {}", path);
+            }
+
+            File directory = new File(path);
+            if (!directory.exists()) {
+                logger.info("Video storage directory doesn't exist: {}, attempting to create it", path);
+                boolean created = directory.mkdirs();
+                if (!created) {
+                    logger.warn("Failed to create video directory: {}", path);
+                    path = System.getProperty("java.io.tmpdir") + "/phan-lop-videos";
+                    logger.info("Falling back to temporary directory: {}", path);
+                    directory = new File(path);
+                    directory.mkdirs();
+                }
+            }
+
+            if (!directory.canWrite()) {
+                logger.error("Video directory is not writable: {}", path);
+                throw new RuntimeException("Cannot write to video storage directory: " + path);
+            }
+
+            logger.info("Using video storage path: {}", path);
+            return path;
+        } catch (Exception e) {
+            logger.error("Error setting up video storage path: {}", e.getMessage(), e);
+            String tempPath = System.getProperty("java.io.tmpdir") + "/phan-lop-videos";
+            logger.info("Using emergency fallback to temp directory: {}", tempPath);
+            new File(tempPath).mkdirs();
+            return tempPath;
+        }
     }
 
     @Override

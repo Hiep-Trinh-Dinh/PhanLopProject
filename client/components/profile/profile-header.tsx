@@ -58,7 +58,7 @@ const convertToUserType = (propUser: ProfileHeaderProps['user']): User => {
 
 // Hàm cập nhật dữ liệu người dùng
 const updateUserData = async (data: User): Promise<User> => {
-  const response = await fetch(`http://localhost:8080/api/users/update-auth`, {
+  const response = await fetch(`http://localhost:8080/api/users/update`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
