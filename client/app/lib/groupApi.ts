@@ -169,40 +169,56 @@ export const groupApi = {
     return response.data;
   },
 
-  getGroupById: async (id: number): Promise<GroupDto> => {
-      if (!id || isNaN(id)) {
-        throw new Error("Invalid post ID");
+  getGroupById: async (id: number, authToken?: string): Promise<GroupDto> => {
+    if (!id || isNaN(id)) {
+      throw new Error("Invalid group ID");
+    }
+  
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+      };
+  
+      // Thêm cookie vào header nếu có
+      if (authToken) {
+        headers["Cookie"] = `auth_token=${authToken}`;
       }
   
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/groups/${id}`, {
-          method: "GET",
-          credentials: "include",
-        });
+      const response = await fetch(`${API_BASE_URL}/api/groups/${id}`, {
+        method: "GET",
+        credentials: "include", // Giữ để client-side vẫn gửi cookie tự động
+        headers,
+      });
   
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Error response for group", id, ":", errorText);
-          if (response.status === 401) {
-            throw new Error("401 Unauthorized: Please login again");
+      const responseText = await response.text();
+  
+      if (!response.ok) {
+        console.error("Error response for group", id, ":", responseText);
+        if (response.status === 401) {
+          console.log("Redirecting to login due to 401 Unauthorized");
+          if (typeof window !== "undefined") {
+            window.location.href = "/login";
           }
-          if (response.status === 404) {
-            throw new Error("Post not found");
-          }
-          if (response.status === 403) {
-            throw new Error("No permission to view this post");
-          }
-          throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+          throw new Error("401 Unauthorized: Vui lòng đăng nhập lại");
         }
-  
-        const data = await response.json();
-        console.log("Raw post response:", data);
-        return data;
-      } catch (error) {
-        console.error("Error fetching group:", error);
-        throw error instanceof Error ? error : new Error("Failed to fetch group");
+        if (response.status === 403) {
+          throw new Error("403 Forbidden: Không có quyền xem nhóm này");
+        }
+        if (response.status === 404) {
+          throw new Error("404 Not Found: Nhóm không tồn tại");
+        }
+        throw new Error(`HTTP error! status: ${response.status}, message: ${responseText}`);
       }
-    },
+  
+      const data = JSON.parse(responseText);
+      return data;
+    } catch (error) {
+      console.error("Error fetching group:", error);
+      throw error instanceof Error ? error : new Error("Không thể lấy thông tin nhóm");
+    }
+  },
 
   getAllGroups: async (
     page: number = 0,
@@ -262,7 +278,6 @@ export const groupApi = {
       }
   
       const data = await response.json();
-      console.log("Dữ liệu nhóm:", data);
   
       const groupList: GroupDto[] = data._embedded?.groupDtoList || [];
   
@@ -325,14 +340,50 @@ export const groupApi = {
     await api.delete(`/groups/${groupId}`);
   },
 
-  addMember: async (
-    groupId: number,
-    userId: number
-  ): Promise<GroupDto | string> => {
-    const response = await api.post(`/groups/${groupId}/members`, null, {
-      params: { userId },
-    });
-    return response.data;
+  createMembershipRequest: async (groupId: number, userId: number): Promise<string> => {
+    try {
+      const response = await api.post(`/groups/${groupId}/membership-requests`, null, {
+        params: { userId },
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error("Lỗi khi tạo yêu cầu tham gia:", error);
+      throw new Error(error.response?.data || "Không thể gửi yêu cầu tham gia");
+    }
+  },
+  
+  addMember: async (groupId: number, userId: number): Promise<GroupDto | string> => {
+    try {
+      // Lấy thông tin nhóm để kiểm tra privacy
+      const group = await groupApi.getGroupById(groupId);
+      if (group.privacy === "PRIVATE") {
+        // Với nhóm riêng tư, tạo yêu cầu tham gia
+        return await groupApi.createMembershipRequest(groupId, userId);
+      } else {
+        // Với nhóm công khai, thêm thành viên trực tiếp
+        const response = await api.post(`/groups/${groupId}/members`, null, {
+          params: { userId },
+        });
+        return response.data;
+      }
+    } catch (error: any) {
+      console.error("Lỗi khi thêm thành viên:", error);
+      throw new Error(error.response?.data || "Không thể thêm thành viên");
+    }
+  },
+
+  getUserMembershipRequests: async (userId: number, page: number = 0, size: number = 10): Promise<PagedResponse<MembershipRequestDto>> => {
+    const response = await api.get(`/users/${userId}/membership-requests?page=${page}&size=${size}`);
+    return {
+      content: response.data._embedded?.membershipRequestDtoList || [],
+      page: {
+        size: response.data.page.size,
+        totalElements: response.data.page.totalElements,
+        totalPages: response.data.page.totalPages,
+        number: response.data.page.number,
+      },
+      _links: response.data._links,
+    };
   },
 
   handleMembershipRequest: async (

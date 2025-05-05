@@ -93,4 +93,14 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     Page<Post> findByPrivacyAndIsActiveFalseAndGroupIsNull(Privacy public1, Pageable pageable);
 
     Page<Post> findByGroupIdAndIsActiveTrue(Long groupId, Pageable pageable);
+
+    @Query("SELECT p FROM Post p WHERE p.isActive = false AND (" +
+       "p.user.id = :userId OR " + // Bài viết của chính user
+       "(p.privacy = 'FRIENDS' AND p.user.id IN (SELECT f.friend.id FROM Friendship f WHERE f.user.id = :userId AND f.status = 'ACCEPTED')) OR " + // Bài viết của bạn bè
+       "(p.privacy = 'PUBLIC' AND (p.group IS NULL OR p.group IN (SELECT g FROM Group g JOIN g.members m WHERE m.id = :userId))) OR " + // Bài viết công khai
+       "(p.group IN (SELECT g FROM Group g JOIN g.members m WHERE m.id = :userId))" + // Bài viết trong nhóm
+       ")")
+    Page<Post> findByUserIdOrFriendsOrPublicOrGroupMembersAndIsActiveFalse(@Param("userId") Long userId, Pageable pageable);
+
+    Page<Post> findByPrivacyAndGroupIsNullAndIsActiveFalse(Privacy public1, Pageable pageable);
 }

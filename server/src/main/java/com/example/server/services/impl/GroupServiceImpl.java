@@ -15,6 +15,8 @@ import com.example.server.repositories.GroupRepository;
 import com.example.server.repositories.MembershipRequestRepository;
 import com.example.server.repositories.UserRepository;
 import com.example.server.services.GroupService;
+import com.example.server.services.NotificationService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +29,7 @@ import org.springframework.hateoas.PagedModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,6 +52,16 @@ public class GroupServiceImpl implements GroupService {
 
     @Autowired
     private GroupDtoMapper groupDtoMapper;
+
+    @Autowired
+    private NotificationService notificationService;
+
+    @Override
+    public Group findGroupById(Long groupId) throws UserException {
+        logger.info("Lay nhom voi id: {}", groupId);
+        return groupRepository.findById(groupId)
+                .orElseThrow(() -> new UserException("Khong tim thay nhom voi id: " + groupId));
+    }
 
     @Override
     @Transactional
@@ -95,72 +108,92 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    @Cacheable(value = "groups", key = "#groupId + ':' + (#userId != null ? #userId : 'anonymous')")
+    //@Cacheable(value = "groups", key = "#groupId + ':' + (#userId != null ? #userId : 'anonymous')")
     public GroupDto getGroupById(Long groupId, Long userId) throws UserException {
-        logger.info("Lay nhom {} voi userId: {}", groupId, userId);
-
+        logger.info("Lấy nhóm {} với userId: {}", groupId, userId);
+    
         Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new UserException("Khong tim thay nhom voi id: " + groupId));
-
-        // Cho phép truy cập nhóm công khai mà không cần kiểm tra quyền
+                .orElseThrow(() -> new UserException("Không tìm thấy nhóm với id: " + groupId));
+    
+        logger.info("Nhom: {}, Quyen rieng tu: {}, Nguoi tao: {}", 
+                    group.getId(), group.getPrivacy(), group.getCreatedBy().getId());
+    
+        User reqUser = userId != null ? userRepository.findById(userId).orElse(null) : null;
+    
+        // Cho phép truy cập nhóm công khai hoặc thông tin cơ bản của nhóm riêng tư
         if (group.getPrivacy() == Group.Privacy.PUBLIC) {
-            User reqUser = userId != null ? userRepository.findById(userId).orElse(null) : null;
             return groupDtoMapper.toGroupDto(group, reqUser);
         }
-
-        // Kiểm tra quyền cho nhóm riêng tư
+    
+        // Xử lý nhóm riêng tư
         if (group.getPrivacy() == Group.Privacy.PRIVATE) {
-            if (userId == null) {
-                throw new UserException("Yeu cau dang nhap de xem nhom rieng tu nay");
-            }
-            if (!groupMemberRepository.existsByGroupIdAndUserId(groupId, userId) && 
-                !group.getCreatedBy().getId().equals(userId)) {
-                throw new UserException("Khong co quyen xem nhom rieng tu nay");
+            boolean isMember = reqUser != null && groupMemberRepository.existsByGroupIdAndUserId(groupId, userId);
+            boolean isCreator = reqUser != null && group.getCreatedBy().getId().equals(userId);
+    
+            logger.info("Là thanh vien: {}, La nguoi tao: {}", isMember, isCreator);
+    
+            if (!isMember && !isCreator) {
+                // Trả về thông tin cơ bản cho người dùng không có quyền
+                GroupDto limitedDto = new GroupDto();
+                limitedDto.setId(group.getId());
+                limitedDto.setName(group.getName());
+                limitedDto.setDescription(group.getDescription());
+                limitedDto.setAvatar(group.getAvatar());
+                limitedDto.setCover(group.getCover());
+                limitedDto.setPrivacy(group.getPrivacy().toString());
+                limitedDto.setMemberCount(group.getMemberCount());
+                limitedDto.setCreatedById(group.getCreatedBy() != null ? group.getCreatedBy().getId() : null);
+                limitedDto.setRules(group.getRules());
+                limitedDto.setIsMember(false);
+                limitedDto.setIsAdmin(false);
+                return limitedDto;
             }
         }
-
-        User reqUser = userId != null ? userRepository.findById(userId).orElse(null) : null;
+    
+        // Trả về thông tin đầy đủ cho thành viên hoặc người tạo
         return groupDtoMapper.toGroupDto(group, reqUser);
     }
 
     @Override
     public PagedModel<?> getAllGroups(Long userId, Pageable pageable) throws UserException {
         logger.info("Lay tat ca nhom voi userId: {}, trang: {}, kich thuoc: {}", userId, pageable.getPageNumber(), pageable.getPageSize());
-
-        Page<Group> groups;
-        if (userId != null) {
-            groups = groupRepository.findByPrivacyOrMembers_Id(Group.Privacy.PUBLIC, userId, pageable);
-        } else {
-            groups = groupRepository.findByPrivacy(Group.Privacy.PUBLIC, pageable);
-        }
-
+    
+        Page<Group> groups = groupRepository.findAll(pageable);;
+        // if (userId != null) {
+        //     // Fetch all groups where the user is a member or all groups
+        //     groups = groupRepository.findByMembers_IdOrAll(userId, pageable);
+        // } else {
+        //     // Fetch all groups without privacy filter
+        //     groups = groupRepository.findAll(pageable);
+        // }
+    
         User reqUser = userId != null ? userRepository.findById(userId).orElse(null) : null;
         List<GroupDto> groupDtos = groups.getContent().stream()
                 .map(group -> groupDtoMapper.toGroupDto(group, reqUser))
                 .collect(Collectors.toList());
-
+    
         PagedModel.PageMetadata metadata = new PagedModel.PageMetadata(
                 groups.getSize(),
                 groups.getNumber(),
                 groups.getTotalElements(),
                 groups.getTotalPages()
         );
-
+    
         PagedModel<?> pagedModel = PagedModel.of(groupDtos, metadata);
-
+    
         Link selfLink = Link.of(String.format("/api/groups?page=%d&size=%d", groups.getNumber(), groups.getSize())).withSelfRel();
         pagedModel.add(selfLink);
-
+    
         if (groups.hasNext()) {
             Link nextLink = Link.of(String.format("/api/groups?page=%d&size=%d", groups.getNumber() + 1, groups.getSize())).withRel("next");
             pagedModel.add(nextLink);
         }
-
+    
         if (groups.hasPrevious()) {
             Link prevLink = Link.of(String.format("/api/groups?page=%d&size=%d", groups.getNumber() - 1, groups.getSize())).withRel("prev");
             pagedModel.add(prevLink);
         }
-
+    
         logger.debug("Tra ve mo hinh phan trang voi {} nhom", groupDtos.size());
         return pagedModel;
     }
@@ -319,36 +352,78 @@ public class GroupServiceImpl implements GroupService {
     @CacheEvict(value = {"groups", "groupMembers"}, key = "#groupId")
     public void createMembershipRequest(Long groupId, Long userId, Long requesterId) throws UserException {
         logger.info("Tao yeu cau tham gia nhom cho userId: {} vao groupId: {} boi requesterId: {}", userId, groupId, requesterId);
-
+    
         Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new UserException("Khong tim thay nhom voi id: " + groupId));
-
+                .orElseThrow(() -> new UserException("Không tìm thấy nhóm với id: " + groupId));
+    
         if (group.getPrivacy() != Group.Privacy.PRIVATE) {
-            throw new UserException("Yeu cau tham gia chi ap dung cho nhom rieng tu");
+            throw new UserException("Yêu cầu tham gia chỉ áp dụng cho nhóm riêng tư");
         }
-
+    
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserException("Khong tim thay nguoi dung voi id: " + userId));
-
+                .orElseThrow(() -> new UserException("Không tìm thấy người dùng với id: " + userId));
+    
         if (!userId.equals(requesterId)) {
-            throw new UserException("Chi nguoi dung tu yeu cau moi co the gui yeu cau tham gia");
+            throw new UserException("Chỉ người dùng tự yêu cầu mới có thể gửi yêu cầu tham gia");
         }
-
+    
         if (groupMemberRepository.existsByGroupIdAndUserId(groupId, userId)) {
-            throw new UserException("Nguoi dung da la thanh vien cua nhom");
+            throw new UserException("Người dùng đã là thành viên của nhóm");
         }
-
+    
         if (membershipRequestRepository.existsByGroupIdAndUserIdAndStatus(groupId, userId, MembershipRequest.Status.PENDING)) {
-            throw new UserException("Yeu cau tham gia nhom da ton tai va dang cho xu ly");
+            throw new UserException("Yêu cầu tham gia nhóm đã tồn tại và đang chờ xử lý");
         }
-
+    
         MembershipRequest request = new MembershipRequest();
         request.setGroup(group);
         request.setUser(user);
         request.setStatus(MembershipRequest.Status.PENDING);
+        request.setCreatedAt(LocalDateTime.now());
         membershipRequestRepository.save(request);
 
+        List<GroupMember> admins = groupMemberRepository.findByGroupIdAndRole(groupId, GroupMember.Role.ADMIN);
+        for (GroupMember admin : admins) {
+            notificationService.createMembershipRequestNotification(user, admin.getUser(), groupId);
+        }
+    
         logger.info("Yeu cau tham gia nhom da duoc tao cho userId: {} trong groupId: {}", userId, groupId);
+    }
+
+    @Override
+    public PagedModel<?> getUserMembershipRequests(Long userId, Pageable pageable) throws UserException {
+        logger.info("Lấy danh sách yêu cầu tham gia của userId: {}, trang: {}, kích thước: {}", userId, pageable.getPageNumber(), pageable.getPageSize());
+
+        userRepository.findById(userId).orElseThrow(() -> new UserException("Không tìm thấy người dùng với id: " + userId));
+
+        Page<MembershipRequest> requests = membershipRequestRepository.findByUserId(userId, pageable);
+        List<MembershipRequestDto> requestDtos = requests.getContent().stream()
+                .map(request -> groupDtoMapper.toMembershipRequestDto(request))
+                .collect(Collectors.toList());
+
+        PagedModel.PageMetadata metadata = new PagedModel.PageMetadata(
+                requests.getSize(),
+                requests.getNumber(),
+                requests.getTotalElements(),
+                requests.getTotalPages()
+        );
+
+        PagedModel<?> pagedModel = PagedModel.of(requestDtos, metadata);
+
+        Link selfLink = Link.of(String.format("/api/users/%d/membership-requests?page=%d&size=%d", userId, requests.getNumber(), requests.getSize())).withSelfRel();
+        pagedModel.add(selfLink);
+
+        if (requests.hasNext()) {
+            Link nextLink = Link.of(String.format("/api/users/%d/membership-requests?page=%d&size=%d", userId, requests.getNumber() + 1, requests.getSize())).withRel("next");
+            pagedModel.add(nextLink);
+        }
+
+        if (requests.hasPrevious()) {
+            Link prevLink = Link.of(String.format("/api/users/%d/membership-requests?page=%d&size=%d", userId, requests.getNumber() - 1, requests.getSize())).withRel("prev");
+            pagedModel.add(prevLink);
+        }
+
+        return pagedModel;
     }
 
     @Override
@@ -391,6 +466,7 @@ public class GroupServiceImpl implements GroupService {
         member.setGroup(group);
         member.setUser(user);
         member.setRole(GroupMember.Role.MEMBER);
+        member.setJoinedAt(LocalDateTime.now());
         groupMemberRepository.save(member);
         group.setMemberCount(group.getMemberCount() + 1);
 
@@ -399,6 +475,9 @@ public class GroupServiceImpl implements GroupService {
         membershipRequestRepository.save(request);
 
         Group updatedGroup = groupRepository.save(group);
+
+        // Gui thong bao den nguoi yeu cau
+        notificationService.createMembershipRequestAcceptedOrNottification(admin.getUser(), user, groupId);
 
         logger.info("Yeu cau tham gia nhom requestId: {} da duoc phe duyet cho userId: {} trong groupId: {}", requestId, user.getId(), groupId);
         return groupDtoMapper.toGroupDto(updatedGroup, user);
@@ -437,6 +516,9 @@ public class GroupServiceImpl implements GroupService {
         // Cap nhat trang thai yeu cau
         request.setStatus(MembershipRequest.Status.REJECTED);
         membershipRequestRepository.save(request);
+
+        // Gui thong bao den nguoi yeu cau
+        notificationService.createMembershipRequestAcceptedOrNottification(admin.getUser(), request.getUser(), groupId);
 
         logger.info("Yeu cau tham gia nhom requestId: {} da bi tu choi cho userId: {} trong groupId: {}", requestId, request.getUser().getId(), groupId);
     }

@@ -1,5 +1,5 @@
-// src/app/groups/[id]/members/page.tsx
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import MainLayout from "@/components/layout/main-layout";
 import GroupHeader from "@/components/groups/group-header";
 import GroupTabs from "@/components/groups/group-tabs";
@@ -16,7 +16,13 @@ async function getGroup(id: string): Promise<GroupDto> {
     if (isNaN(groupId)) {
       throw new Error("ID nhóm không hợp lệ");
     }
-    const group = await groupApi.getGroupById(groupId);
+    console.log(`Fetching group with ID: ${groupId}`);
+
+    // Lấy cookie auth_token từ request
+    const cookieStore = cookies();
+    const authToken = (await cookieStore).get("auth_token")?.value;
+
+    const group = await groupApi.getGroupById(groupId, authToken);
     return group;
   } catch (error: any) {
     console.error("Lỗi khi lấy nhóm:", error);
@@ -28,6 +34,7 @@ export default async function GroupMembersPage({ params }: GroupMembersPageProps
   const { id } = params;
 
   if (!id || isNaN(Number(id))) {
+    console.error("Invalid group ID:", id);
     notFound();
   }
 

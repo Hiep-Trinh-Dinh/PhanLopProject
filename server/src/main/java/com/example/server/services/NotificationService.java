@@ -29,4 +29,6 @@ public interface NotificationService {
     Notification createPostLikeNotification(Post post, User actor);
     Notification createPostCommentNotification(Post post, Comment comment, User actor);
     Notification createPostShareNotification(Post post, User actor);
+    Notification createMembershipRequestNotification(User requester, User groupAdmin, Long groupId);
+    Notification createMembershipRequestAcceptedOrNottification(User groupAdmin, User requester, Long groupId);
 } 

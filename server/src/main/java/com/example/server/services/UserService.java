@@ -13,6 +13,8 @@ import com.example.server.requests.UserRequest;
 
 public interface UserService {
 
+    public User findByEmail(String email) throws UserException;
+
     public User findUserById(Long userId) throws UserException;
 
     public User findUserProfileByJwt(String jwt) throws UserException;

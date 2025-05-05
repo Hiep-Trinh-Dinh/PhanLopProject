@@ -3,6 +3,7 @@ package com.example.server.controllers;
 import com.example.server.dto.GroupDto;
 import com.example.server.dto.SerializablePagedGroupMembersDto;
 import com.example.server.exception.UserException;
+import com.example.server.models.Group;
 import com.example.server.models.User;
 import com.example.server.services.GroupService;
 import com.example.server.services.UserService;
@@ -283,22 +284,19 @@ public class GroupController {
                 setNoCacheHeaders(response);
                 return validationResult;
             }
-
+    
             User requester = (User) validationResult.getBody();
             if (requester == null) {
                 logger.error("Người dùng null sau khi xác thực token");
                 setNoCacheHeaders(response);
                 return ResponseEntity.status(401).body("Không được phép: Không tìm thấy người dùng");
             }
-            GroupDto group = groupService.getGroupById(groupId, requester.getId());
-            if ("PUBLIC".equals(group.getPrivacy())) {
+    
+            Group group = groupService.findGroupById(groupId);
+            if (group.getPrivacy() == Group.Privacy.PUBLIC) {
                 GroupDto updatedGroup = groupService.addMember(groupId, userId, requester.getId());
                 setNoCacheHeaders(response);
                 return ResponseEntity.ok(updatedGroup);
-            } else if ("PRIVATE".equals(group.getPrivacy())) {
-                groupService.createMembershipRequest(groupId, userId, requester.getId());
-                setNoCacheHeaders(response);
-                return ResponseEntity.ok("Yêu cầu tham gia nhóm đã được gửi, đang chờ phê duyệt.");
             } else {
                 setNoCacheHeaders(response);
                 return ResponseEntity.badRequest().body("Loại nhóm không hợp lệ.");
@@ -313,6 +311,85 @@ public class GroupController {
             return ResponseEntity.status(500).body("Lỗi server nội bộ");
         }
     }
+
+    @PostMapping("/groups/{groupId}/membership-requests")
+    @CacheEvict(value = {"groups", "groupMembers"}, allEntries = true)
+    public ResponseEntity<?> requestMembership(
+            @PathVariable Long groupId,
+            @RequestParam Long userId,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        logger.info("POST /api/groups/{}/membership-requests - Yêu cầu tham gia nhóm, userId: {}", groupId, userId);
+        try {
+            ResponseEntity<?> validationResult = validateTokenAndUser(getTokenFromRequest(request), response);
+            if (validationResult.getStatusCode().isError()) {
+                setNoCacheHeaders(response);
+                return validationResult;
+            }
+
+            User requester = (User) validationResult.getBody();
+            if (requester == null) {
+                logger.error("Người dùng null sau khi xác thực token");
+                setNoCacheHeaders(response);
+                return ResponseEntity.status(401).body("Không được phép: Không tìm thấy người dùng");
+            }
+
+            if (!requester.getId().equals(userId)) {
+                logger.warn("Người dùng {} cố gắng gửi yêu cầu thay cho userId {}", requester.getId(), userId);
+                setNoCacheHeaders(response);
+                return ResponseEntity.status(403).body("Không được phép: Chỉ người dùng chính mới có thể gửi yêu cầu tham gia");
+            }
+
+            groupService.createMembershipRequest(groupId, userId, requester.getId());
+            setNoCacheHeaders(response);
+            return ResponseEntity.ok("Yêu cầu tham gia nhóm đã được gửi, đang chờ phê duyệt.");
+        } catch (UserException e) {
+            logger.error("Lỗi khi xử lý yêu cầu tham gia nhóm: {}", e.getMessage());
+            setNoCacheHeaders(response);
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            logger.error("Lỗi không mong muốn khi xử lý yêu cầu tham gia nhóm: {}", e.getMessage(), e);
+            setNoCacheHeaders(response);
+            return ResponseEntity.status(500).body("Lỗi server nội bộ");
+        }
+    }
+
+    @GetMapping("/users/{userId}/membership-requests")
+    public ResponseEntity<?> getUserMembershipRequests(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        logger.info("GET /api/users/{}/membership-requests - Lay danh sach yeu cau tham gia cua userId: {}", userId, userId);
+        try {
+            ResponseEntity<?> validationResult = validateTokenAndUser(getTokenFromRequest(request), response);
+            if (validationResult.getStatusCode().isError()) {
+                setNoCacheHeaders(response);
+                return validationResult;
+            }
+    
+            User user = (User) validationResult.getBody();
+            if (user == null || !user.getId().equals(userId)) {
+                logger.warn("Truy cap bi tu choi: Khong the truy cap yeu cau tham gia cua nguoi dung khac: {}", userId);
+                setNoCacheHeaders(response);
+                return ResponseEntity.status(403).body("Cấm: Không thể truy cập yêu cầu tham gia của người dùng khác");
+            }
+    
+            Pageable pageable = PageRequest.of(page, size);
+            PagedModel<?> requests = groupService.getUserMembershipRequests(userId, pageable);
+            setNoCacheHeaders(response);
+            return ResponseEntity.ok(requests);
+        } catch (UserException e) {
+            logger.error("Loi khi lay danh sach yeu cau tham gia: {}", e.getMessage());
+            setNoCacheHeaders(response);
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            logger.error("Loi khong mong muon khi lay danh sach yeu cau tham gia: {}", e.getMessage(), e);
+            setNoCacheHeaders(response);
+            return ResponseEntity.status(500).body("Lỗi server nội bộ");
+        }
+    }    
 
     @PostMapping("/groups/{groupId}/membership-requests/{requestId}")
     @CacheEvict(value = {"groups", "groupMembers"}, allEntries = true, condition = "#approve")

@@ -15,4 +15,5 @@ public interface MembershipRequestRepository extends JpaRepository<MembershipReq
     List<MembershipRequest> findByGroupIdAndStatus(Long groupId, MembershipRequest.Status status);
     Page<MembershipRequest> findByGroupIdAndStatus(Long groupId, Status pending, Pageable pageable);
     boolean existsByGroupIdAndUserIdAndStatus(Long groupId, Long userId, Status pending);
+    Page<MembershipRequest> findByUserId(Long userId, Pageable pageable);
 }

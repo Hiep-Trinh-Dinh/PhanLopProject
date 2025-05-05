@@ -2,6 +2,8 @@ package com.example.server.events;
 
 import com.example.server.models.Notification;
 import com.example.server.models.User;
+import com.example.server.services.impl.NotificationServiceImpl;
+
 import org.springframework.context.ApplicationEvent;
 
 public class NotificationEvent extends ApplicationEvent {
@@ -34,6 +36,20 @@ public class NotificationEvent extends ApplicationEvent {
     
     public static NotificationEvent createGeneralEvent(Object source, User receiver, Notification notification) {
         return new NotificationEvent(source, notification.getActor(), receiver, notification, NotificationType.GENERAL);
+    }
+    public static ApplicationEvent createMembershipRequestAcceptedEvent(NotificationServiceImpl notificationServiceImpl,
+    User groupAdmin, User requester, Notification notification2) {
+        return new NotificationEvent(notificationServiceImpl, groupAdmin, requester, notification2, NotificationType.GENERAL);
+    }
+
+    public static ApplicationEvent createMembershipRequestRejectedEvent(NotificationServiceImpl notificationServiceImpl,
+        User groupAdmin, User requester, Notification notification2) {
+            return new NotificationEvent(notificationServiceImpl, groupAdmin, requester, notification2, NotificationType.GENERAL);
+    }
+
+    public static ApplicationEvent createMembershipRequestEvent(NotificationServiceImpl notificationServiceImpl,
+        User requester, User groupAdmin, Notification savedNotification) {
+            return new NotificationEvent(notificationServiceImpl, requester, groupAdmin, savedNotification, NotificationType.GENERAL);
     }
     
     public User getSender() {

@@ -4,9 +4,13 @@ import com.example.server.dto.NotificationDto;
 import com.example.server.events.NotificationEvent;
 import com.example.server.exceptions.ResourceNotFoundException;
 import com.example.server.models.Comment;
+import com.example.server.models.Group;
+import com.example.server.models.MembershipRequest;
 import com.example.server.models.Notification;
 import com.example.server.models.Post;
 import com.example.server.models.User;
+import com.example.server.repositories.GroupRepository;
+import com.example.server.repositories.MembershipRequestRepository;
 import com.example.server.repositories.NotificationRepository;
 import com.example.server.repositories.UserRepository;
 import com.example.server.services.NotificationService;
@@ -35,6 +39,12 @@ public class NotificationServiceImpl implements NotificationService {
     
     @Autowired
     private ApplicationEventPublisher eventPublisher;
+
+    @Autowired
+    private GroupRepository groupRepository;
+
+    @Autowired
+    private MembershipRequestRepository membershipRequestRepository;
     
     @Override
     public Page<NotificationDto> getNotificationsForUser(Long userId, Pageable pageable) {
@@ -268,4 +278,72 @@ public class NotificationServiceImpl implements NotificationService {
         
         return savedNotification;
     }
+
+    @Override
+    public Notification createMembershipRequestNotification(User requester, User groupAdmin, Long groupId) {
+        logger.info("Creating membership request notification from user ID: {} to group admin ID: {} for group ID: {}", 
+                    requester.getId(), groupAdmin.getId(), groupId);
+
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Group not found with id: " + groupId));
+
+        Notification notification = new Notification();
+        notification.setUser(groupAdmin);
+        notification.setActor(requester);
+        notification.setType(Notification.NotificationType.MEMBERSHIP_REQUEST);
+        notification.setContent(String.format("đã gửi yêu cầu tham gia nhóm %s", group.getName()));
+        notification.setLink("/groups/" + groupId + "/requests");
+        notification.setIsRead(false);
+        notification.setIsDeleted(false);
+
+        Notification savedNotification = notificationRepository.save(notification);
+        logger.info("Membership request notification created with ID: {}", savedNotification.getId());
+
+        eventPublisher.publishEvent(
+            NotificationEvent.createMembershipRequestEvent(this, requester, groupAdmin, savedNotification)
+        );
+
+        return savedNotification;
+    }
+
+    @Override
+    public Notification createMembershipRequestAcceptedOrNottification(User groupAdmin, User requester, Long groupId) {
+        logger.info("Creating membership request result notification from admin ID: {} to user ID: {} for group ID: {}", 
+                    groupAdmin.getId(), requester.getId(), groupId);
+
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Group not found with id: " + groupId));
+
+        MembershipRequest request = membershipRequestRepository.findByGroupIdAndUserId(groupId, requester.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Membership request not found for user ID: " + requester.getId()));
+
+        Notification notification = new Notification();
+        notification.setUser(requester);
+        notification.setActor(groupAdmin);
+        
+        if (request.getStatus() == MembershipRequest.Status.APPROVED) {
+            notification.setType(Notification.NotificationType.MEMBERSHIP_REQUEST_ACCEPTED);
+            notification.setContent(String.format("Yêu cầu tham gia nhóm %s của bạn đã được chấp nhận", group.getName()));
+            notification.setLink("/groups/" + groupId + "/members");
+            eventPublisher.publishEvent(
+                NotificationEvent.createMembershipRequestAcceptedEvent(this, groupAdmin, requester, notification)
+            );
+        } else {
+            notification.setType(Notification.NotificationType.MEMBERSHIP_REQUEST_REJECTED);
+            notification.setContent(String.format("Yêu cầu tham gia nhóm %s của bạn đã bị từ chối", group.getName()));
+            notification.setLink("/groups");
+            eventPublisher.publishEvent(
+                NotificationEvent.createMembershipRequestRejectedEvent(this, groupAdmin, requester, notification)
+            );
+        }
+
+        notification.setIsRead(false);
+        notification.setIsDeleted(false);
+
+        Notification savedNotification = notificationRepository.save(notification);
+        logger.info("Membership request result notification created with ID: {}", savedNotification.getId());
+
+        return savedNotification;
+    }
+    
 } 

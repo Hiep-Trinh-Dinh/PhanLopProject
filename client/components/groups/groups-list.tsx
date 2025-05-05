@@ -1,25 +1,45 @@
 "use client";
 
-// src/components/GroupsList.tsx
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Search, Users } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUserData } from "@/app/api/auth/me/useUserData";
-import { groupApi, GroupDto, PagedResponse } from "@/app/lib/groupApi";
+import { groupApi, GroupDto, PagedResponse, MembershipRequestDto } from "@/app/lib/groupApi";
 import Link from "next/link";
-
 
 const GroupsList = () => {
   const { userData } = useUserData();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(0);
+  const [pendingRequests, setPendingRequests] = useState<{ [key: number]: boolean }>({});
   const size = 10;
 
+  // Lấy danh sách nhóm
   const { data: pageResponse, isLoading, error } = useQuery({
     queryKey: ["groups", page],
     queryFn: () => groupApi.getAllGroups(page, size),
   });
+
+  // Lấy danh sách yêu cầu tham gia của người dùng
+  const { data: membershipRequests } = useQuery({
+    queryKey: ["membershipRequests", userData?.id],
+    queryFn: () => groupApi.getUserMembershipRequests(userData!.id),
+    enabled: !!userData?.id,
+  });
+
+  // Cập nhật pendingRequests từ dữ liệu backend
+  useEffect(() => {
+    if (membershipRequests) {
+      const pending = membershipRequests.content
+        .filter((req: MembershipRequestDto) => req.status === "PENDING")
+        .reduce((acc: { [key: number]: boolean }, req: MembershipRequestDto) => ({
+          ...acc,
+          [req.group.id]: true,
+        }), {});
+      setPendingRequests(pending);
+    }
+  }, [membershipRequests]);
 
   const joinMutation = useMutation({
     mutationFn: (groupId: number) => {
@@ -27,25 +47,34 @@ const GroupsList = () => {
       return groupApi.addMember(groupId, userData.id);
     },
     onSuccess: (data, groupId) => {
-      queryClient.setQueryData(["groups", page], (old: PagedResponse<GroupDto> | undefined) => {
-        if (!old) return old;
-        return {
-          ...old,
-          content: old.content.map((group) =>
-            group.id === groupId
-              ? {
-                  ...group,
-                  isMember: true,
-                  memberCount: group.memberCount + 1,
-                }
-              : group
-          ),
-        };
-      });
-      alert(typeof data === "string" ? data : "Đã tham gia nhóm!");
+      if (typeof data === "string") {
+        // Nhóm riêng tư: đánh dấu yêu cầu đang chờ duyệt
+        setPendingRequests((prev) => ({ ...prev, [groupId]: true }));
+      } else {
+        // Nhóm công khai: cập nhật cache
+        queryClient.setQueryData(["groups", page], (old: PagedResponse<GroupDto> | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            content: old.content.map((group) =>
+              group.id === groupId
+                ? {
+                    ...group,
+                    isMember: true,
+                    memberCount: group.memberCount + 1,
+                  }
+                : group
+            ),
+          };
+        });
+      }
     },
     onError: (err: any) => {
-      alert(err.message || "Không thể tham gia nhóm");
+      const message = err.message || "Không thể tham gia nhóm";
+      if (message.includes("Yêu cầu tham gia nhóm đã tồn tại")) {
+        setPendingRequests((prev) => ({ ...prev, [joinMutation.variables!]: true }));
+      } else {
+      }
     },
   });
 
@@ -71,7 +100,6 @@ const GroupsList = () => {
       });
       setPage((p) => p + (direction === "next" ? 1 : -1));
     } catch (err) {
-      alert("Không thể tải trang tiếp theo");
     }
   };
 
@@ -155,19 +183,21 @@ const GroupsList = () => {
 
                 <button
                   className={`ml-4 rounded-md px-3 py-1 text-sm font-medium ${
-                    group.isMember
+                    group.isMember || pendingRequests[group.id]
                       ? "border border-gray-700 text-gray-400 cursor-not-allowed"
                       : joinMutation.isPending && joinMutation.variables === group.id
                       ? "bg-blue-400 text-white cursor-not-allowed"
                       : "bg-blue-600 text-white hover:bg-blue-700"
                   }`}
-                  onClick={() => !group.isMember && joinMutation.mutate(group.id)}
-                  disabled={group.isMember || (joinMutation.isPending && joinMutation.variables === group.id)}
+                  onClick={() => !group.isMember && !pendingRequests[group.id] && joinMutation.mutate(group.id)}
+                  disabled={group.isMember || pendingRequests[group.id] || (joinMutation.isPending && joinMutation.variables === group.id)}
                 >
                   {joinMutation.isPending && joinMutation.variables === group.id
                     ? "Đang xử lý..."
                     : group.isMember
                     ? "Đã tham gia"
+                    : pendingRequests[group.id]
+                    ? "Đã gửi yêu cầu"
                     : "Tham gia"}
                 </button>
               </div>

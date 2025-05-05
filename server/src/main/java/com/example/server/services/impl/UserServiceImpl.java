@@ -59,6 +59,19 @@ public class UserServiceImpl implements UserService {
     private EntityManager entityManager;
 
     @Override
+    public User findByEmail(String email) throws UserException {
+        if (email == null || email.isBlank()) {
+            throw new UserException("Email cannot be null or empty");
+        }
+
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new UserException("User not found with email: " + email);
+        }
+        return user;
+    }
+
+    @Override
     @Cacheable(value = "users", key = "#userId")
     public User findUserById(Long userId) throws UserException {
         if (userId == null) {

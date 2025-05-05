@@ -108,35 +108,38 @@ public class PostServiceImpl implements PostService {
         
         // Chỉ tìm bài viết đang hiển thị (is_active = 0)
         if (userId != null) {
-            posts = postRepository.findByPrivacyOrUserIdAndIsActiveFalse(Post.Privacy.PUBLIC, userId, pageable);
+            // Lấy bài viết của user, bài viết của bạn bè (nếu privacy = FRIENDS), 
+            // bài viết công khai, hoặc bài viết trong nhóm mà user là thành viên, chỉ lấy bài active
+            posts = postRepository.findByUserIdOrFriendsOrPublicOrGroupMembersAndIsActiveFalse(userId, pageable);
         } else {
-            posts = postRepository.findByPrivacyAndIsActiveFalse(Post.Privacy.PUBLIC, pageable);
+            // Lấy bài viết công khai không thuộc nhóm và active
+            posts = postRepository.findByPrivacyAndGroupIsNullAndIsActiveFalse(Post.Privacy.PUBLIC, pageable);
         }
-        
+    
         List<PostDto> postDtos = postDtoMapper.toPostDtos(posts.getContent(), reqUser);
-        
+    
         PagedModel.PageMetadata metadata = new PagedModel.PageMetadata(
             posts.getSize(),
             posts.getNumber(),
             posts.getTotalElements(),
             posts.getTotalPages()
         );
-        
+    
         PagedModel<?> pagedModel = PagedModel.of(postDtos, metadata);
-        
+    
         Link selfLink = Link.of(String.format("/api/posts?page=%d&size=%d", posts.getNumber(), posts.getSize())).withSelfRel();
         pagedModel.add(selfLink);
-        
+    
         if (posts.hasNext()) {
             Link nextLink = Link.of(String.format("/api/posts?page=%d&size=%d", posts.getNumber() + 1, posts.getSize())).withRel("next");
             pagedModel.add(nextLink);
         }
-        
+
         if (posts.hasPrevious()) {
             Link prevLink = Link.of(String.format("/api/posts?page=%d&size=%d", posts.getNumber() - 1, posts.getSize())).withRel("prev");
             pagedModel.add(prevLink);
         }
-        
+
         return pagedModel;
     }
 

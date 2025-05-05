@@ -1,5 +1,6 @@
 // src/app/groups/[id]/page.tsx
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import MainLayout from "@/components/layout/main-layout";
 import GroupHeader from "@/components/groups/group-header";
 import GroupTabs from "@/components/groups/group-tabs";
@@ -12,7 +13,17 @@ interface GroupAboutPageProps {
 
 async function getGroup(id: string): Promise<GroupDto> {
   try {
-    const group = await groupApi.getGroupById(Number.parseInt(id));
+    const groupId = Number.parseInt(id, 10);
+    if (isNaN(groupId)) {
+      throw new Error("ID nhóm không hợp lệ");
+    }
+    console.log(`Fetching group with ID: ${groupId}`);
+
+    // Lấy cookie auth_token từ request
+    const cookieStore = cookies();
+    const authToken = (await cookieStore).get("auth_token")?.value;
+
+    const group = await groupApi.getGroupById(groupId, authToken);
     return group;
   } catch (error: any) {
     console.error("Error fetching group:", error);

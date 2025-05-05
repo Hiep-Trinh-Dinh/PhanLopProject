@@ -1,6 +1,7 @@
 package com.example.server.repositories;
 
 import com.example.server.models.GroupMember;
+import com.example.server.models.GroupMember.Role;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -8,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> {
@@ -27,4 +29,6 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
     @Param("groupId") Long groupId, 
     @Param("query") String query, 
     Pageable pageable);
+
+    List<GroupMember> findByGroupIdAndRole(Long groupId, Role admin);
 }

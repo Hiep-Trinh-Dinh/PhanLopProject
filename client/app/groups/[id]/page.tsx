@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import MainLayout from "@/components/layout/main-layout";
 import GroupHeader from "@/components/groups/group-header";
 import GroupTabs from "@/components/groups/group-tabs";
@@ -17,7 +18,12 @@ async function getGroup(id: string): Promise<GroupDto> {
       throw new Error("ID nhóm không hợp lệ");
     }
     console.log(`Fetching group with ID: ${groupId}`);
-    const group = await groupApi.getGroupById(groupId);
+
+    // Lấy cookie auth_token từ request
+    const cookieStore = cookies();
+    const authToken = (await cookieStore).get("auth_token")?.value;
+
+    const group = await groupApi.getGroupById(groupId, authToken);
     console.log("Group data received:", group);
     return group;
   } catch (error: any) {
@@ -34,9 +40,20 @@ export default async function GroupPage({ params }: GroupPageProps) {
     notFound();
   }
 
-  let group: GroupDto;
   try {
-    group = await getGroup(id);
+    const group: GroupDto = await getGroup(id);
+    return (
+      <MainLayout>
+        <div className="mx-auto max-w-5xl">
+          <GroupHeader groupId={group.id} />
+          <GroupTabs groupId={group.id} />
+          <div className="mb-6">
+            <CreatePostCard groupId={group.id} />
+          </div>
+          <GroupPostFeed groupId={group.id} />
+        </div>
+      </MainLayout>
+    );
   } catch (error: any) {
     console.error("Error in GroupPage:", error);
     if (error.message.includes("403")) {
@@ -63,17 +80,4 @@ export default async function GroupPage({ params }: GroupPageProps) {
       </MainLayout>
     );
   }
-
-  return (
-    <MainLayout>
-      <div className="mx-auto max-w-5xl">
-        <GroupHeader groupId={group.id} />
-        <GroupTabs groupId={group.id} />
-        <div className="mb-6">
-          <CreatePostCard groupId={group.id} />
-        </div>
-        <GroupPostFeed groupId={group.id} />
-      </div>
-    </MainLayout>
-  );
 }

@@ -50,13 +50,13 @@ public class Notification {
         FRIEND_REQUEST,
         FRIEND_ACCEPTED,
         FRIEND_SUGGESTION,
-        GROUP_INVITE,
-        GROUP_JOIN_REQUEST,
-        GROUP_JOIN_ACCEPTED,
         GROUP_MENTION,
         MESSAGE_RECEIVED,
         MESSAGE_READ,
-        SYSTEM
+        SYSTEM,
+        MEMBERSHIP_REQUEST,
+        MEMBERSHIP_REQUEST_ACCEPTED,
+        MEMBERSHIP_REQUEST_REJECTED
     }
 
     @PrePersist
