@@ -359,10 +359,10 @@ export default function CommentList({ postId }: CommentListProps) {
                 width={32}
                 height={32}
                 className="h-8 w-8 rounded-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = "/placeholder-user.jpg";
-                }}
+                // onError={(e) => {
+                //   const target = e.target as HTMLImageElement;
+                //   target.src = "/placeholder-user.jpg";
+                // }}
               />
             </div>
             <div className="flex-1 min-w-0">
@@ -446,10 +446,10 @@ export default function CommentList({ postId }: CommentListProps) {
                 width={28}
                 height={28}
                 className="h-7 w-7 rounded-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = "/placeholder-user.jpg";
-                }}
+                // onError={(e) => {
+                //   const target = e.target as HTMLImageElement;
+                //   target.src = "/placeholder-user.jpg";
+                // }}
               />
             </div>
             <div className="flex-1">

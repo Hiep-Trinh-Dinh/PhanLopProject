@@ -104,9 +104,9 @@ export default function AdminLayout({
     { title: "Dashboard", path: "/admin", icon: "📊" },
     { title: "Người dùng", path: "/admin/users", icon: "👥" },
     { title: "Bài viết", path: "/admin/posts", icon: "📝" },
-    { title: "Nhóm", path: "/admin/groups", icon: "👪" },
-    { title: "Báo cáo", path: "/admin/reports", icon: "🚩" },
-    { title: "Cấu hình", path: "/admin/settings", icon: "⚙️" },
+    // { title: "Nhóm", path: "/admin/groups", icon: "👪" },
+    // { title: "Báo cáo", path: "/admin/reports", icon: "🚩" },
+    // { title: "Cấu hình", path: "/admin/settings", icon: "⚙️" },
   ];
 
   // Hiển thị màn hình loading khi đang kiểm tra quyền truy cập

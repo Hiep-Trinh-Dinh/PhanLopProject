@@ -37,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   // Sử dụng hook để chặn các lỗi cụ thể trong danh sách
-  useErrorSuppression();
+  // useErrorSuppression();
   
   // Đảm bảo toast notifications luôn bị tắt
   useEffect(() => {
