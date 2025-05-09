@@ -4,6 +4,10 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,10 +34,6 @@ import com.example.server.responses.AuthResponse;
 import com.example.server.services.CustomUserDetailsServerImplementation;
 import com.example.server.services.EmailService;
 import com.example.server.services.UserService;
-
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -66,22 +66,49 @@ public class AuthController {
     @Value("${app.secure:true}")
     private boolean secureCookie;
 
-    @Value("${jwt.cookie.expiration:604800}") // 7 ngày (giây)
+    @Value("${jwt.cookie.expiration:604800}")
     private int cookieExpiration;
 
     @Value("${app.frontend.url:http://localhost:3000}")
     private String frontendUrl;
 
+    @Value("${admin.email:admin123@admin.com}")
+    private String adminEmail;
+
+    @Value("${admin.default.password:Admin@1234}")
+    private String adminDefaultPassword;
+
     private static final String COOKIE_NAME = "auth_token";
     private static final String BLACKLIST_PREFIX = "blacklist_token:";
     private static final String RESET_TOKEN_PREFIX = "reset_token:";
-    private static final long RESET_TOKEN_EXPIRY = 5 * 60 ; 
+    private static final long RESET_TOKEN_EXPIRY = 5 * 60;
+
+    // Tạo tài khoản admin
+    @PostConstruct
+    public void initAdminAccount() {
+        if (userRepository.findByEmail(adminEmail) == null) {
+            User admin = new User();
+            admin.setEmail(adminEmail);
+            admin.setPassword(passwordEncoder.encode(adminDefaultPassword));
+            admin.setFirstName("Admin");
+            admin.setLastName("System");
+            admin.setIsEmailVerified(true); // Admin không cần xác minh email
+            admin.setIsActive(true);
+            admin.setAdmin(true); // Đặt là admin
+            userRepository.save(admin);
+            System.out.println("Tài khoản admin đã được tạo: " + adminEmail);
+        }
+    }
 
     @PostMapping("/signup")
     public ResponseEntity<AuthResponse> createUserHandler(@Valid @RequestBody SignupRequest signupRequest) throws UserException {
         String email = signupRequest.getEmail();
         if (userRepository.findByEmail(email) != null) {
             throw new UserException("Email " + email + " đã được sử dụng.");
+        }
+
+        if (email.equals(adminEmail)) {
+            throw new UserException("Email admin không thể được sử dụng để đăng ký.");
         }
 
         User newUser = new User();
@@ -105,8 +132,8 @@ public class AuthController {
         emailService.sendVerificationEmail(email, newUser.getVerification().getCode());
 
         return new ResponseEntity<>(
-            new AuthResponse("Đăng ký thành công. Vui lòng kiểm tra email để lấy mã xác minh.", true),
-            HttpStatus.CREATED
+                new AuthResponse("Đăng ký thành công. Vui lòng kiểm tra email để lấy mã xác minh.", true),
+                HttpStatus.CREATED
         );
     }
 
@@ -144,11 +171,10 @@ public class AuthController {
         return new ResponseEntity<>("Xác minh thành công!", HttpStatus.OK);
     }
 
-    @SuppressWarnings("null")
     @PostMapping("/signin")
     public ResponseEntity<AuthResponse> signin(
-        @Valid @RequestBody LoginRequest loginRequest,
-        HttpServletResponse response
+            @Valid @RequestBody LoginRequest loginRequest,
+            HttpServletResponse response
     ) throws UserException {
         // Xóa thông tin xác thực cũ
         SecurityContextHolder.clearContext();
@@ -166,7 +192,7 @@ public class AuthController {
         
         // Kiểm tra tài khoản có bị khóa không
         if (user != null && !user.getIsActive()) {
-            throw new UserException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để biết thêm chi tiết.");
+            throw new UserException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
         }
 
         // Tạo token mới
@@ -174,11 +200,15 @@ public class AuthController {
         setJwtCookie(response, token);
 
         // Cập nhật thời gian đăng nhập
-        user.setLastSeen(LocalDateTime.now());
-        userRepository.save(user);
+        if (user != null) {
+            user.setLastSeen(LocalDateTime.now());
+            userRepository.save(user);
+        }
 
         // Cập nhật trạng thái online
-        userService.updateOnlineStatus(user.getId(), 1);
+        if (user != null) {
+            userService.updateOnlineStatus(user.getId(), 1);
+        }
 
         return ResponseEntity.ok(new AuthResponse("Đăng nhập thành công", true));
     }
@@ -188,25 +218,23 @@ public class AuthController {
         if (userDetails == null) {
             throw new UserException("Email không tồn tại.");
         }
-        
-        // Kiểm tra mật khẩu
+
         if (!passwordEncoder.matches(password, userDetails.getPassword())) {
             throw new UserException("Mật khẩu không đúng.");
         }
-        
-        // Kiểm tra tài khoản có bị khóa không (nếu cần thiết)
+
         User user = userRepository.findByEmail(username);
         if (user != null && !user.getIsActive()) {
-            throw new UserException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để biết thêm chi tiết.");
+            throw new UserException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
         }
-        
+
         return new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
     }
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
-        @CookieValue(name = COOKIE_NAME, required = false) String token,
-        HttpServletResponse response
+            @CookieValue(name = COOKIE_NAME, required = false) String token,
+            HttpServletResponse response
     ) {
         // Xóa thông tin xác thực
         SecurityContextHolder.clearContext();
@@ -215,7 +243,7 @@ public class AuthController {
             // Lấy email từ token
             String email = jwtProvider.getEmailFromToken(token);
             User user = userRepository.findByEmail(email);
-            
+
             if (user != null) {
                 // Cập nhật trạng thái offline
                 userService.updateOnlineStatus(user.getId(), 0);
@@ -223,10 +251,10 @@ public class AuthController {
             
             // Thêm token vào danh sách đen
             redisTemplate.opsForValue().set(
-                BLACKLIST_PREFIX + token,
-                "true",
-                cookieExpiration,
-                TimeUnit.SECONDS
+                    BLACKLIST_PREFIX + token,
+                    "true",
+                    cookieExpiration,
+                    TimeUnit.SECONDS
             );
         }
 
@@ -251,10 +279,10 @@ public class AuthController {
         // Tạo token reset mật khẩu
         String resetToken = UUID.randomUUID().toString();
         redisTemplate.opsForValue().set(
-            RESET_TOKEN_PREFIX + resetToken,
-            email,
-            RESET_TOKEN_EXPIRY,
-            TimeUnit.SECONDS
+                RESET_TOKEN_PREFIX + resetToken,
+                email,
+                RESET_TOKEN_EXPIRY,
+                TimeUnit.SECONDS
         );
 
         // Tạo liên kết reset
@@ -264,8 +292,8 @@ public class AuthController {
         emailService.sendResetPasswordEmail(email, resetLink);
 
         return new ResponseEntity<>(
-            new AuthResponse("Đã gửi liên kết reset mật khẩu đến email của bạn.", true),
-            HttpStatus.OK
+                new AuthResponse("Đã gửi liên kết reset mật khẩu đến email của bạn.", true),
+                HttpStatus.OK
         );
     }
 
@@ -298,15 +326,15 @@ public class AuthController {
         redisTemplate.delete(RESET_TOKEN_PREFIX + token);
 
         return new ResponseEntity<>(
-            new AuthResponse("Đặt lại mật khẩu thành công.", true),
-            HttpStatus.OK
+                new AuthResponse("Đặt lại mật khẩu thành công.", true),
+                HttpStatus.OK
         );
     }
 
     @GetMapping("/me")
     public ResponseEntity<UserDto> getCurrentUser(
-        @CookieValue(name = COOKIE_NAME, required = false) String token,
-        HttpServletResponse response
+            @CookieValue(name = COOKIE_NAME, required = false) String token,
+            HttpServletResponse response
     ) {
         // Kiểm tra token
         if (token == null || !jwtProvider.validateToken(token) || isTokenBlacklisted(token)) {

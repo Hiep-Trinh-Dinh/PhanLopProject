@@ -35,59 +35,37 @@ public class AdminUserServiceImpl implements AdminUserService {
     
     @Override
     public boolean isAdmin(User user) {
-        // Xác định admin chỉ dựa vào email có đuôi @admin.com hoặc admin@phanlop.com
-        if (user.getEmail() != null) {
-            boolean isAdminEmail = user.getEmail().endsWith("@admin.com") || 
-                               user.getEmail().equals("admin@phanlop.com");
-            
-            if (isAdminEmail) {
-                logger.info("Xác định tài khoản {} là admin", user.getEmail());
-                return true;
-            }
+        if (user == null) {
+            logger.warn("User is null when checking admin status");
+            return false;
         }
-        return false;
-        
-        /* Logic cũ - tạm thời bỏ qua
-        // TODO: Chỉ dùng cho môi trường phát triển - Cần xóa trước khi triển khai production
-        return true;
-        
-        // Tạm thời xác định admin dựa vào email
-        if (user.getEmail() != null) {
-            return user.getEmail().endsWith("@admin.com") || 
-                   user.getEmail().equals("admin@phanlop.com");
+        boolean isAdmin = user.isAdmin();
+        if (isAdmin) {
+            logger.info("User {} is identified as admin", user.getEmail());
         }
-        return false;
-        */
+        return isAdmin;
     }
 
     @Override
     public Page<AdminUserDto> findAllUsers(String query, String status, Pageable pageable) {
         Page<User> usersPage;
         
-        // Kiểm tra và xác định kiểu tìm kiếm/lọc
         if (query != null && !query.isBlank()) {
-            // Tìm kiếm theo query
             if (!"all".equals(status)) {
-                // Kết hợp với lọc theo status
                 boolean isActive = "active".equals(status);
                 usersPage = userRepository.findByNameOrEmailAndStatus(query, isActive, pageable);
             } else {
-                // Chỉ tìm kiếm, không lọc status
                 usersPage = userRepository.findByNameOrEmail(query, pageable);
             }
         } else {
-            // Không có query tìm kiếm
             if (!"all".equals(status)) {
-                // Chỉ lọc theo status
                 boolean isActive = "active".equals(status);
                 usersPage = userRepository.findByIsActive(isActive, pageable);
             } else {
-                // Không tìm kiếm, không lọc - lấy tất cả
                 usersPage = userRepository.findAll(pageable);
             }
         }
         
-        // Chuyển đổi từ User sang AdminUserDto
         List<AdminUserDto> userDtos = usersPage.getContent().stream()
                 .map(AdminUserDto::fromEntity)
                 .collect(Collectors.toList());
@@ -116,7 +94,6 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     @Transactional
     public AdminUserDto createUser(AdminUserDto userDto) throws UserException {
-        // Kiểm tra thông tin bắt buộc
         if (userDto.getEmail() == null || userDto.getEmail().isBlank()) {
             throw new UserException("Email không được để trống", HttpStatus.BAD_REQUEST);
         }
@@ -133,12 +110,10 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new UserException("Mật khẩu không được để trống", HttpStatus.BAD_REQUEST);
         }
         
-        // Kiểm tra email đã tồn tại chưa
         if (userRepository.findByEmail(userDto.getEmail()) != null) {
             throw new UserException("Email đã được sử dụng", HttpStatus.CONFLICT);
         }
         
-        // Tạo user mới
         User newUser = new User();
         newUser.setFirstName(userDto.getFirstName());
         newUser.setLastName(userDto.getLastName());
@@ -147,7 +122,6 @@ public class AdminUserServiceImpl implements AdminUserService {
         newUser.setIsActive(true);
         newUser.setFriends(new ArrayList<>());
         
-        // Thiết lập các giá trị mặc định
         if (userDto.getImage() != null) {
             newUser.setImage(userDto.getImage());
         } else {
@@ -160,11 +134,10 @@ public class AdminUserServiceImpl implements AdminUserService {
         
         newUser.setIsEmailVerified(false);
         newUser.setPostsCount(0);
+        newUser.setAdmin(false); // Đảm bảo người dùng mới không phải admin
         
-        // Lưu user
         User savedUser = userRepository.save(newUser);
         
-        // Trả về DTO
         return AdminUserDto.fromEntity(savedUser);
     }
 
@@ -176,7 +149,6 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new UserException("Không tìm thấy người dùng với ID: " + userId, HttpStatus.NOT_FOUND);
         }
         
-        // Cập nhật thông tin
         if (userDto.getFirstName() != null && !userDto.getFirstName().isBlank()) {
             user.setFirstName(userDto.getFirstName());
         }
@@ -193,13 +165,11 @@ public class AdminUserServiceImpl implements AdminUserService {
             user.setPhone(userDto.getPhone());
         }
         
-        // Email không được thay đổi nếu đã xác thực
         if (userDto.getEmail() != null && !userDto.getEmail().equals(user.getEmail())) {
             if (Boolean.TRUE.equals(user.getIsEmailVerified())) {
                 throw new UserException("Không thể thay đổi email đã xác thực", HttpStatus.BAD_REQUEST);
             }
             
-            // Kiểm tra email đã tồn tại chưa
             if (userRepository.findByEmail(userDto.getEmail()) != null) {
                 throw new UserException("Email đã được sử dụng", HttpStatus.CONFLICT);
             }
@@ -208,12 +178,10 @@ public class AdminUserServiceImpl implements AdminUserService {
             user.setIsEmailVerified(false);
         }
         
-        // Cập nhật mật khẩu nếu có
         if (userDto.getPassword() != null && !userDto.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         }
         
-        // Lưu cập nhật
         user.setUpdatedAt(LocalDateTime.now());
         User updatedUser = userRepository.save(user);
         
@@ -228,12 +196,10 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new UserException("Không tìm thấy người dùng với ID: " + userId, HttpStatus.NOT_FOUND);
         }
         
-        // Nếu là admin thì không được khóa
-        if (isAdmin(user) && lock) {
+        if (user.isAdmin() && lock) {
             throw new UserException("Không thể khóa tài khoản admin", HttpStatus.BAD_REQUEST);
         }
         
-        // Cập nhật trạng thái
         user.setIsActive(!lock);
         user.setUpdatedAt(LocalDateTime.now());
         
@@ -241,4 +207,4 @@ public class AdminUserServiceImpl implements AdminUserService {
         
         return AdminUserDto.fromEntity(updatedUser);
     }
-} 
+}

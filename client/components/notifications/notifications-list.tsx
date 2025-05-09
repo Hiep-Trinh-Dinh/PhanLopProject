@@ -17,7 +17,7 @@ export default function NotificationsList({
 }: NotificationsListProps) {
   // Cập nhật số lượng thông báo chưa đọc
   useEffect(() => {
-    const unreadCount = notifications.filter((n) => !n.isRead).length;
+    const unreadCount = notifications.filter((n) => !n.read).length;
     onUpdateUnread(unreadCount);
   }, [notifications, onUpdateUnread]);
 
@@ -54,8 +54,8 @@ export default function NotificationsList({
   };
 
   // Phân chia thông báo thành đã đọc và chưa đọc
-  const unreadNotifications = notifications.filter((n) => !n.isRead);
-  const readNotifications = notifications.filter((n) => n.isRead);
+  const unreadNotifications = notifications.filter((n) => !n.read);
+  const readNotifications = notifications.filter((n) => n.read);
 
   return (
     <div className="bg-gray-900 p-4 rounded-lg overflow-y-auto">

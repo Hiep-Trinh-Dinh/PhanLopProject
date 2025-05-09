@@ -112,7 +112,7 @@ export interface NotificationDto {
   type: string;
   content: string;
   link?: string;
-  isRead: boolean;
+  read: boolean;
   createdAt: string;
   referenceId?: number;
 }

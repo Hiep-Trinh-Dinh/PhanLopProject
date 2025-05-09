@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 export default function AdminLayout({
   children,
@@ -10,8 +10,6 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [isVerified, setIsVerified] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Hàm xóa cookie
@@ -47,43 +45,6 @@ export default function AdminLayout({
   };
 
   useEffect(() => {
-    // Kiểm tra xem người dùng có phải là admin không
-    const checkAdminAccess = () => {
-      const isAdmin = localStorage.getItem('isAdmin') === 'true';
-      
-      if (!isAdmin) {
-        // Kiểm tra bằng API
-        fetch('http://localhost:8080/api/admin/users/isAdminValid', {
-          credentials: 'include'
-        })
-        .then(res => {
-          if (!res.ok) {
-            throw new Error('Không có quyền truy cập');
-          }
-          return res.json();
-        })
-        .then(data => {
-          if (data.valid) {
-            setIsVerified(true);
-          } else {
-            // Chuyển hướng về trang chính nếu không phải admin
-            router.push('/');
-          }
-        })
-        .catch(err => {
-          console.error('Lỗi kiểm tra quyền admin:', err);
-          // Chuyển hướng về trang chính nếu không phải admin
-          router.push('/');
-        });
-      } else {
-        // Nếu đã được xác thực là admin từ localStorage
-        setIsVerified(true);
-      }
-    };
-    
-    checkAdminAccess();
-    
-    // Thêm event listener để đóng dropdown khi click ra ngoài
     const handleClickOutside = (event: MouseEvent) => {
       const dropdown = document.getElementById('admin-dropdown');
       const avatar = document.getElementById('admin-avatar');
@@ -98,7 +59,7 @@ export default function AdminLayout({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [router]);
+  }, []);
 
   const menuItems = [
     { title: "Dashboard", path: "/admin", icon: "📊" },
@@ -109,21 +70,21 @@ export default function AdminLayout({
     // { title: "Cấu hình", path: "/admin/settings", icon: "⚙️" },
   ];
 
-  // Hiển thị màn hình loading khi đang kiểm tra quyền truy cập
-  if (!isVerified) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status">
-            <span className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">
-              Loading...
-            </span>
-          </div>
-          <p className="mt-2">Đang xác thực quyền truy cập...</p>
-        </div>
-      </div>
-    );
-  }
+  // // Hiển thị màn hình loading khi đang kiểm tra quyền truy cập
+  // if (!isVerified) {
+  //   return (
+  //     <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
+  //       <div className="text-center">
+  //         <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status">
+  //           <span className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">
+  //             Loading...
+  //           </span>
+  //         </div>
+  //         <p className="mt-2">Đang xác thực quyền truy cập...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="flex h-screen bg-gray-900">
@@ -169,7 +130,6 @@ export default function AdminLayout({
         </div>
       </div>
 
-      {/* Main content */}
       <div className="flex-1 overflow-auto">
         <header className="bg-gray-800 text-white p-4 flex justify-between items-center">
           <h1 className="text-xl font-semibold">Quản trị hệ thống</h1>
@@ -190,7 +150,7 @@ export default function AdminLayout({
               >
                 <div className="px-4 py-2 text-sm text-gray-300 border-b border-gray-600">
                   <div className="font-medium">Admin</div>
-                  <div className="text-xs text-gray-400">admin@phanlop.com</div>
+                  <div className="text-xs text-gray-400"></div>
                 </div>
                 <button
                   onClick={handleLogout}
@@ -206,4 +166,4 @@ export default function AdminLayout({
       </div>
     </div>
   );
-} 
+}

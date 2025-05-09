@@ -1,12 +1,14 @@
 package com.example.server.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.stereotype.Service;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.MailException;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.stereotype.Service;
 
 @Service
 public class EmailService {
@@ -18,73 +20,87 @@ public class EmailService {
 
     /**
      * Gửi email chứa mã xác minh 6 số
-     * @param toEmail Địa chỉ email của người nhận
-     * @param code Mã xác minh 6 số
      */
     public void sendVerificationEmail(String toEmail, String code) {
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(toEmail);
-            message.setSubject("Mã xác minh tài khoản của bạn");
-            message.setText("Chào bạn,\n\n" +
-                    "Cảm ơn bạn đã đăng ký! Dưới đây là mã xác minh của bạn:\n\n" +
-                    "Mã: " + code + "\n\n" +
-                    "Vui lòng nhập mã này vào ứng dụng để xác minh tài khoản. " +
-                    "Mã này sẽ hết hạn sau 15 phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.\n\n" +
-                    "Trân trọng,\n" +
-                    "Đội ngũ hỗ trợ");
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
-            mailSender.send(message);
-            logger.info("Email xác minh đã được gửi thành công đến {}", toEmail);
-        } catch (MailException e) {
+            helper.setTo(toEmail);
+            helper.setSubject("🔐 Xác minh tài khoản của bạn");
+
+            String htmlContent = "<div style='font-family: Arial, sans-serif; padding: 20px;'>"
+                    + "<h2 style='color: #2E86C1;'>Chào bạn,</h2>"
+                    + "<p>Cảm ơn bạn đã đăng ký! Đây là mã xác minh của bạn:</p>"
+                    + "<div style='font-size: 24px; font-weight: bold; color: #E74C3C; margin: 20px 0;'>" + code + "</div>"
+                    + "<p>Vui lòng nhập mã này vào ứng dụng để xác minh tài khoản. Mã sẽ hết hạn sau <strong>15 phút</strong>.</p>"
+                    + "<hr style='margin-top:30px;'>"
+                    + "<p style='font-size: 12px; color: #999;'>Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>"
+                    + "<p>Trân trọng,<br><em>Đội ngũ hỗ trợ</em></p>"
+                    + "</div>";
+
+            helper.setText(htmlContent, true);
+            mailSender.send(mimeMessage);
+            logger.info("Email xác minh (HTML) đã được gửi thành công đến {}", toEmail);
+        } catch (MessagingException | MailException e) {
             logger.error("Lỗi khi gửi email xác minh đến {}: {}", toEmail, e.getMessage());
             throw new RuntimeException("Không thể gửi email xác minh: " + e.getMessage());
         }
     }
 
     /**
-     * Gửi email chứa liên kết đặt lại mật khẩu
-     * @param toEmail Địa chỉ email của người nhận
-     * @param resetLink Liên kết để đặt lại mật khẩu
+     * Gửi email đặt lại mật khẩu (HTML)
      */
     public void sendResetPasswordEmail(String toEmail, String resetLink) {
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(toEmail);
-            message.setSubject("Đặt lại mật khẩu của bạn");
-            message.setText("Chào bạn,\n\n" +
-                    "Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn. " +
-                    "Vui lòng nhấp vào liên kết dưới đây để đặt lại mật khẩu:\n\n" +
-                    resetLink + "\n\n" +
-                    "Liên kết này sẽ hết hạn sau 5 phút. Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.\n\n" +
-                    "Trân trọng,\n" +
-                    "Đội ngũ hỗ trợ");
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
-            mailSender.send(message);
-            logger.info("Email đặt lại mật khẩu đã được gửi thành công đến {}", toEmail);
-        } catch (MailException e) {
+            helper.setTo(toEmail);
+            helper.setSubject("🔑 Đặt lại mật khẩu của bạn");
+
+            String htmlContent = "<div style='font-family: Arial, sans-serif; padding: 20px;'>"
+                    + "<h2 style='color: #27AE60;'>Xin chào,</h2>"
+                    + "<p>Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>"
+                    + "<p>Vui lòng nhấp vào nút bên dưới để đặt lại mật khẩu:</p>"
+                    + "<a href='" + resetLink + "' style='display: inline-block; padding: 12px 24px; background-color: #2980B9; color: white; text-decoration: none; border-radius: 5px;'>Đặt lại mật khẩu</a>"
+                    + "<p style='margin-top: 20px;'>Liên kết này sẽ hết hạn sau <strong>5 phút</strong>.</p>"
+                    + "<hr style='margin-top:30px;'>"
+                    + "<p style='font-size: 12px; color: #999;'>Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>"
+                    + "<p>Trân trọng,<br><em>Đội ngũ hỗ trợ</em></p>"
+                    + "</div>";
+
+            helper.setText(htmlContent, true);
+            mailSender.send(mimeMessage);
+            logger.info("Email đặt lại mật khẩu (HTML) đã được gửi thành công đến {}", toEmail);
+        } catch (MessagingException | MailException e) {
             logger.error("Lỗi khi gửi email đặt lại mật khẩu đến {}: {}", toEmail, e.getMessage());
             throw new RuntimeException("Không thể gửi email đặt lại mật khẩu: " + e.getMessage());
         }
     }
 
     /**
-     * Gửi email thông báo chung
-     * @param toEmail Địa chỉ email của người nhận
-     * @param subject Tiêu đề email
-     * @param body Nội dung email
+     * Gửi email HTML thông báo chung
      */
     public void sendEmail(String toEmail, String subject, String body) {
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(toEmail);
-            message.setSubject(subject);
-            message.setText(body);
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
-            mailSender.send(message);
-            logger.info("📧 Email đã được gửi thành công đến {} với tiêu đề: {}", toEmail, subject);
-        } catch (MailException e) {
-            logger.error("❌ Lỗi khi gửi email đến {}: {}", toEmail, e.getMessage());
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+
+            String htmlContent = "<div style='font-family: Arial, sans-serif; padding: 20px;'>"
+                    + "<p>" + body + "</p>"
+                    + "<hr style='margin-top:30px;'>"
+                    + "<p style='font-size: 12px; color: #999;'>Đây là email tự động, vui lòng không trả lời.</p>"
+                    + "</div>";
+
+            helper.setText(htmlContent, true);
+            mailSender.send(mimeMessage);
+            logger.info("📧 Email HTML đã được gửi thành công đến {} với tiêu đề: {}", toEmail, subject);
+        } catch (MessagingException | MailException e) {
+            logger.error("❌ Lỗi khi gửi email HTML đến {}: {}", toEmail, e.getMessage());
             throw new RuntimeException("Không thể gửi email: " + e.getMessage());
         }
     }

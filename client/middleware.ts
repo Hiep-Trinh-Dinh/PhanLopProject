@@ -1,25 +1,93 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
-  // Sử dụng tên cookie "auth_token" thay vì "jwt"
+export async function middleware(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
   const { pathname } = request.nextUrl;
 
-  // Danh sách các route công khai không cần xác thực
   const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/verify-email', '/reset-password'];
-  
-  // Cho phép truy cập trang admin mà không cần xác thực
-  if (pathname.startsWith('/admin')) {
+
+  // Xử lý các route công khai
+  if (publicRoutes.includes(pathname)) {
+    if (token) {
+      try {
+        const response = await fetch('http://localhost:8080/api/auth/me', {
+          method: 'GET',
+          headers: {
+            'Cookie': `auth_token=${token}`,
+          },
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          if (userData.admin) {
+            return NextResponse.redirect(new URL('/admin', request.url));
+          }
+          return NextResponse.redirect(new URL('/home', request.url));
+        }
+      } catch (error) {
+        console.error('Error checking auth:', error);
+      }
+    }
     return NextResponse.next();
   }
 
-  // Nếu đã đăng nhập mà truy cập vào trang công khai
-  if (token && publicRoutes.includes(pathname)) {
-    return NextResponse.redirect(new URL('/home', request.url));
+  // Xử lý các route admin
+  if (pathname.startsWith('/admin')) {
+    if (!token) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/me', {
+        method: 'GET',
+        headers: {
+          'Cookie': `auth_token=${token}`,
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        return NextResponse.redirect(new URL('/', request.url));
+      }
+
+      const userData = await response.json();
+      if (!userData.admin) {
+        return NextResponse.redirect(new URL('/home', request.url));
+      }
+    } catch (error) {
+      console.error('Error verifying admin:', error);
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+    return NextResponse.next();
   }
 
-  // Nếu chưa đăng nhập mà truy cập vào trang protected
+  // Xử lý các route không phải admin và không công khai
+  if (token) {
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/me', {
+        method: 'GET',
+        headers: {
+          'Cookie': `auth_token=${token}`,
+        },
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        // Nếu là admin, không cho phép truy cập các trang không phải admin
+        if (userData.admin) {
+          return NextResponse.redirect(new URL('/admin', request.url));
+        }
+      }
+    } catch (error) {
+      console.error('Error checking auth:', error);
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+  }
+
+  // Nếu không có token và không phải route công khai, chuyển hướng về trang chủ
   if (!token && !publicRoutes.includes(pathname)) {
     return NextResponse.redirect(new URL('/', request.url));
   }
@@ -29,13 +97,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - api routes
-     */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };

@@ -513,6 +513,7 @@ public class UserServiceImpl implements UserService {
         newUser.setLastName(req.getLastName());
         newUser.setEmail(req.getEmail());
         newUser.setPassword(passwordEncoder.encode(req.getPassword()));
+        newUser.setAdmin(false); // Đảm bảo người dùng mới không phải admin
         
         if (req.getIsActive() != null) {
             newUser.setIsActive(req.getIsActive());

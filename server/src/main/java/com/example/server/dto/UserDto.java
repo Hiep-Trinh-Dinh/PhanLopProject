@@ -55,6 +55,8 @@ public class UserDto implements Serializable{
 
     private boolean followed;
     private boolean isVerified; // Sửa typo "isVarified"
+
+    private boolean isAdmin;
     
     // Thêm các trường liên quan đến bạn bè
     private boolean isFriend;

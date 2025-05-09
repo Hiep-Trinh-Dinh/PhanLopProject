@@ -37,7 +37,7 @@ export default function NotificationItem({
   notification,
   onMarkAsRead
 }: NotificationItemProps) {
-  const { id, actor, type: serverType, content, isRead, createdAt, link } = notification;
+  const { id, actor, type: serverType, content, read, createdAt, link } = notification;
   
   // Chuyển đổi kiểu từ server sang client
   const type = mapServerTypeToClientType(serverType);
@@ -77,7 +77,7 @@ export default function NotificationItem({
 
   const handleClick = () => {
     // Đánh dấu đã đọc khi click
-    if (!isRead) {
+    if (!read) {
       onMarkAsRead(id);
     }
     
@@ -90,7 +90,7 @@ export default function NotificationItem({
   return (
     <div
       className={`p-3 rounded-lg cursor-pointer transition-all ${
-        isRead
+        read
           ? "bg-gray-800 hover:bg-gray-700"
           : "bg-blue-900 hover:bg-blue-800"
       }`}
@@ -119,7 +119,7 @@ export default function NotificationItem({
         </div>
 
         {/* Chỉ báo thông báo chưa đọc */}
-        {!isRead && (
+        {!read && (
           <div className="h-3 w-3 bg-blue-500 rounded-full mt-2"></div>
         )}
       </div>

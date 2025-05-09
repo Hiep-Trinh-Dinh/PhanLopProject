@@ -27,6 +27,7 @@ public class UserDtoMapper {
         userDto.setPhone(user.getPhone());
         userDto.setEmail(user.getEmail());
         userDto.setVerified(user.getIsEmailVerified());
+        userDto.setAdmin(user.isAdmin());
 
         return userDto;
     }

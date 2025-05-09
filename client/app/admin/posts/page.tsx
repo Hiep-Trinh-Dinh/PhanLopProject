@@ -199,9 +199,9 @@ export default function PostsManagement() {
                   </td>
                   <td className="p-4">
                     <span className={`inline-block rounded-full px-2 py-1 text-xs ${
-                      post.active ? 'bg-green-500' : 'bg-red-500'
+                      post.active ? 'bg-red-500' : 'bg-green-500'
                     }`}>
-                      {post.active ? 'active' : 'inactive'}
+                      {post.active ? 'inactive' : 'active'}
                     </span>
                     <div className="mt-1">
                       <span className={`inline-block rounded-full px-2 py-1 text-xs ${
@@ -245,16 +245,16 @@ export default function PostsManagement() {
                       {post.active ? (
                         <button 
                           onClick={() => handleLockPost(post.id)}
-                          className="text-red-400 hover:text-red-300"
+                          className="text-green-400 hover:text-green-300"
                         >
-                          Vô hiệu
+                          Kích hoạt
                         </button>
                       ) : (
                         <button 
                           onClick={() => handleUnlockPost(post.id)}
-                          className="text-green-400 hover:text-green-300"
+                          className="text-red-400 hover:text-red-300"
                         >
-                          Kích hoạt
+                          Vô hiệu
                         </button>
                       )}
                     </div>

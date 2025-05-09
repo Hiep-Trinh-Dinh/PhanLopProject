@@ -40,13 +40,6 @@ public class CookieTokenValidator extends OncePerRequestFilter {
         // Debug: ghi lại thông tin request
         logger.info("Request URI: {}, Method: {}", requestURI, request.getMethod());
         
-        // Bỏ qua xác thực cho API admin trong môi trường phát triển
-        if (requestURI.startsWith("/api/admin")) {
-            logger.info("Bỏ qua xác thực cho API admin: {}", requestURI);
-            filterChain.doFilter(request, response);
-            return;
-        }
-        
         String jwt = null;
         Cookie[] cookies = request.getCookies();
         

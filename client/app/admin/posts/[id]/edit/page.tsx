@@ -280,9 +280,9 @@ export default function PostEdit({ params }: PostEditProps) {
             <div className="flex items-center text-gray-400 text-sm">
               <span className="mr-2">Trạng thái hiện tại:</span>
               <span className={`inline-block rounded-full px-2 py-1 text-xs ${
-                post.active ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                post.active ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
               }`}>
-                {post.active ? 'Đang hoạt động' : 'Đã vô hiệu'}
+                {post.active ? 'Đã vô hiệu' : 'Đang hoạt động'}
               </span>
             </div>
             <div className="ml-auto">
@@ -290,19 +290,19 @@ export default function PostEdit({ params }: PostEditProps) {
                 <button 
                   type="button"
                   onClick={handleLockPost}
-                  className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-500 text-sm"
+                  className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-500 text-sm"
                   disabled={saving}
                 >
-                  Vô hiệu hóa
+                  Kích hoạt
                 </button>
               ) : (
                 <button 
                   type="button"
                   onClick={handleUnlockPost}
-                  className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-500 text-sm"
+                  className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-500 text-sm"
                   disabled={saving}
                 >
-                  Kích hoạt
+                  Vô hiệu hóa
                 </button>
               )}
             </div>

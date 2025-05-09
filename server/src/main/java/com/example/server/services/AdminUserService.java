@@ -66,4 +66,6 @@ public interface AdminUserService {
      * @throws UserException nếu không tìm thấy user
      */
     AdminUserDto toggleUserLock(Long userId, boolean lock) throws UserException;
+
+    
 } 

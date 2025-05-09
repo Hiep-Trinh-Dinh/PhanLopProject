@@ -13,39 +13,22 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  // Kiểm tra trạng thái đăng nhập khi trang load
   useEffect(() => {
     const checkAuth = async () => {
-      // Kiểm tra xem đã đăng nhập dưới dạng admin chưa
-      const isAdminLoggedIn = localStorage.getItem('isAdmin') === 'true';
-      if (isAdminLoggedIn) {
-        router.push("/admin");
-        return;
-      }
-      
       try {
         const response = await fetch("http://localhost:8080/api/auth/me", {
           method: "GET",
-          credentials: "include", // Gửi cookie
+          credentials: "include",
         });
 
         if (response.ok) {
           const userData = await response.json();
-          
-          // Kiểm tra nếu là tài khoản admin
-          const isAdmin = userData && userData.email && 
-                         (userData.email.endsWith('@admin.com') || 
-                          userData.email === 'admin@phanlop.com');
-                          
-          if (isAdmin) {
-            // Chuyển hướng đến trang admin
+          if (userData.admin) {
             router.push("/admin");
           } else {
-            // Chuyển hướng đến trang home cho người dùng thông thường
             router.push("/home");
           }
-          
-          router.refresh(); // Đảm bảo dữ liệu mới được tải
+          router.refresh();
         }
       } catch (error) {
         console.log("User not authenticated yet:", error);
@@ -54,7 +37,6 @@ export default function LoginPage() {
 
     checkAuth();
 
-    // Tắt autocomplete
     const timer = setTimeout(() => {
       document.getElementById("email")?.setAttribute("autocomplete", "off");
       document.getElementById("password")?.setAttribute("autocomplete", "new-password");
@@ -82,28 +64,14 @@ export default function LoginPage() {
     return true;
   };
 
-  const handleSubmit = async (e: { preventDefault: () => void; }) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     if (!validateForm()) return;
-  
+
     setError("");
     setIsLoading(true);
-    
-    // Kiểm tra thông tin đăng nhập admin
-    if (email === "admin@phanlop.com" && password === "admin123") {
-      console.log("Đăng nhập admin trực tiếp");
-      
-      // Lưu trạng thái admin vào localStorage
-      localStorage.setItem('isAdmin', 'true');
-      localStorage.setItem('currentUserId', '999999'); // ID ảo cho admin
-      
-      // Chuyển hướng trực tiếp đến trang admin
-      router.push("/admin");
-      router.refresh();
-      return;
-    }
-  
+
     try {
       const response = await fetch("http://localhost:8080/api/auth/signin", {
         method: "POST",
@@ -114,55 +82,44 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
         credentials: "include",
       });
-  
-      console.log("Signin response status:", response.status); // Debug
+
       const data = await response.json();
-      console.log("Signin response data:", data); // Debug
-  
+
       if (!response.ok) {
         throw new Error(data.message || "Đăng nhập thất bại");
       }
-      
-      // Lưu ID người dùng vào localStorage
-      if (data && data.user && data.user.id) {
-        localStorage.setItem('currentUserId', data.user.id.toString());
-        console.log('Đã lưu currentUserId:', data.user.id);
-      } else if (data && data.id) {
-        localStorage.setItem('currentUserId', data.id.toString());
-        console.log('Đã lưu currentUserId:', data.id);
-      } else {
-        // Nếu không có ID trong response, gọi API lấy thông tin người dùng
-        try {
-          const userResponse = await fetch("http://localhost:8080/api/auth/me", {
-            method: "GET",
-            credentials: "include"
-          });
-          
-          if (userResponse.ok) {
-            const userData = await userResponse.json();
-            if (userData && userData.id) {
-              localStorage.setItem('currentUserId', userData.id.toString());
-              console.log('Đã lưu currentUserId từ API /me:', userData.id);
-            }
-          }
-        } catch (userError) {
-          console.error("Lỗi khi lấy thông tin người dùng:", userError);
+
+      // Lưu ID người dùng nếu có
+      if (data?.user?.id) {
+        localStorage.setItem("currentUserId", data.user.id.toString());
+        console.log("Đã lưu currentUserId:", data.user.id);
+      }
+
+      // Gọi API /me để xác định quyền admin và chuyển hướng
+      const userRes = await fetch("http://localhost:8080/api/auth/me", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (userRes.ok) {
+        const userData = await userRes.json();
+
+        if (userData?.id && !localStorage.getItem("currentUserId")) {
+          localStorage.setItem("currentUserId", userData.id.toString());
+          console.log("Đã lưu currentUserId từ API /me:", userData.id);
         }
-      }
-      
-      // Kiểm tra nếu là tài khoản admin
-      const isAdmin = email.endsWith('@admin.com') || email === 'admin@phanlop.com';
-      if (isAdmin) {
-        // Chuyển hướng đến trang admin
-        console.log('Chuyển hướng tài khoản admin đến trang quản trị');
-        router.push("/admin");
+
+        if (userData.admin) {
+          router.push("/admin");
+        } else {
+          router.push("/home");
+        }
+
+        router.refresh();
       } else {
-        // Chuyển hướng đến trang home cho người dùng thông thường
-        router.push("/home");
+        throw new Error("Không thể lấy thông tin người dùng");
       }
-      
-      router.refresh();
-    } catch (err:any) {
+    } catch (err: any) {
       console.error("Signin error:", err);
       setError(err.message || "Đăng nhập thất bại");
     } finally {
@@ -174,20 +131,16 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-black p-4 overflow-hidden">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="text-6xl font-bold text-white select-none pointer-events-none">
-            GoKu
-          </h1>
+          <h1 className="text-6xl font-bold text-white select-none pointer-events-none">GoKu</h1>
           <p className="mt-2 text-gray-400 select-none pointer-events-none">
             Connect with friends and the world around you
           </p>
         </div>
 
         <div className="rounded-lg border border-gray-800 bg-gray-900">
-          <div className="p-4">
-            <h2 className="text-center text-3xl text-white select-none pointer-events-none">
-              Login
-            </h2>
-            <p className="text-center text-lg text-gray-400 mt-2 select-none pointer-events-none">
+          <div className="p-4 text-center">
+            <h2 className="text-3xl text-white select-none pointer-events-none">Login</h2>
+            <p className="text-lg text-gray-400 mt-2 select-none pointer-events-none">
               Enter your credentials to access your account
             </p>
           </div>
@@ -279,7 +232,7 @@ export default function LoginPage() {
 
           <div className="border-t border-gray-800 p-6 text-center">
             <p className="text-gray-400">
-              Don&apos;t have an account?{" "}
+              Don't have an account?{" "}
               <Link href="/register" className="text-blue-400 hover:underline">
                 Sign Up
               </Link>

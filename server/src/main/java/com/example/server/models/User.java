@@ -44,6 +44,7 @@ public class User {
     private String phone;
     private String email;
     private String birthDate;
+    private Boolean admin;
 
     @JsonIgnore
     private String password;
@@ -183,12 +184,8 @@ public class User {
      * Kiểm tra xem người dùng có phải là admin không dựa trên email
      * @return true nếu là admin, false nếu không phải
      */
-    public boolean isAdmin() {
-        if (email != null) {
-            // Kiểm tra chính xác đuôi email - KHÔNG phải @gmail.com
-            return email.endsWith("@admin.com") || email.equals("admin@phanlop.com");
-        }
-        return false;
+    public Boolean isAdmin() { 
+        return admin != null && admin; 
     }
     
     /**
